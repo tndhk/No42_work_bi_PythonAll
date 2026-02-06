@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 
 from src.data.s3_client import get_s3_client
 from src.data.config import settings
+from src.exceptions import DatasetFileNotFoundError
 
 
 class ParquetReader:
@@ -36,7 +37,7 @@ class ParquetReader:
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             if error_code in ("NoSuchKey", "404", "NotFound"):
-                raise FileNotFoundError(f"Dataset not found: {s3_path}") from e
+                raise DatasetFileNotFoundError(s3_path=s3_path) from e
             raise
 
     def list_datasets(self) -> list[str]:
