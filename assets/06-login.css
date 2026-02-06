@@ -34,7 +34,7 @@
 }
 
 .login-brand {
-  font-family: "Syne", sans-serif;
+  font-family: "Noto Sans JP", "Inter", sans-serif;
   font-size: 2rem;
   font-weight: 800;
   color: var(--accent-primary);
@@ -43,7 +43,7 @@
 }
 
 .login-subtitle {
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Noto Sans JP", "Inter", sans-serif;
   font-size: 0.875rem;
   color: var(--text-secondary);
   margin: 0;
@@ -61,7 +61,7 @@
   border-radius: 6px !important;
   padding: var(--spacing-md) var(--spacing-lg) !important;
   color: var(--text-primary) !important;
-  font-family: "Plus Jakarta Sans", sans-serif !important;
+  font-family: "Noto Sans JP", "Inter", sans-serif !important;
   font-size: 0.9375rem !important;
   transition: all 0.2s ease !important;
 }
@@ -69,7 +69,7 @@
 .login-input:focus {
   outline: none !important;
   border-color: var(--accent-primary) !important;
-  box-shadow: 0 0 0 3px rgba(201, 165, 92, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
 }
 
 .login-input::placeholder {
@@ -81,8 +81,8 @@
   border: none !important;
   border-radius: 6px !important;
   padding: var(--spacing-md) var(--spacing-lg) !important;
-  color: var(--bg-base) !important;
-  font-family: "Plus Jakarta Sans", sans-serif !important;
+  color: #ffffff !important;
+  font-family: "Noto Sans JP", "Inter", sans-serif !important;
   font-size: 0.9375rem !important;
   font-weight: 600 !important;
   cursor: pointer !important;
@@ -102,7 +102,7 @@
 
 .login-error {
   color: var(--status-danger);
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Noto Sans JP", "Inter", sans-serif;
   font-size: 0.875rem;
   min-height: 1.5rem;
   padding: var(--spacing-xs) 0;

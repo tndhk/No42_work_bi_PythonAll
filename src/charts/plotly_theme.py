@@ -1,14 +1,14 @@
-"""Custom Plotly theme for Minimal Luxury dark theme."""
+"""Custom Plotly theme for Warm Professional light theme."""
 import plotly.graph_objects as go
 
-# Color palette based on accent gold
+# Color palette for Warm Professional light theme
 PLOTLY_COLOR_PALETTE = [
-    "#c9a55c",  # Warm gold (primary accent)
-    "#3ecfb4",  # Teal/turquoise
-    "#dbb76e",  # Lighter gold
-    "#9a7d3f",  # Darker gold
-    "#f0b429",  # Amber/yellow
-    "#ef6461",  # Coral/red
+    "#2563eb",  # Blue (primary)
+    "#059669",  # Emerald
+    "#d97706",  # Amber
+    "#dc2626",  # Red
+    "#7c3aed",  # Violet
+    "#0891b2",  # Cyan
 ]
 
 # Plotly template configuration
@@ -21,50 +21,50 @@ PLOTLY_TEMPLATE = go.layout.Template(
         
         # Fonts
         font=dict(
-            family="Plus Jakarta Sans, sans-serif",
+            family="Noto Sans JP, Inter, sans-serif",
             size=12,
-            color="#8b8d9a",  # text-secondary
+            color="#64748b",
         ),
         title=dict(
             font=dict(
-                family="Syne, sans-serif",
+                family="Noto Sans JP, Inter, sans-serif",
                 size=18,
-                color="#e8e6e1",  # text-primary
+                color="#1a1a2e",
             ),
         ),
         
         # Axes
         xaxis=dict(
-            gridcolor="rgba(255, 255, 255, 0.06)",  # border-subtle
+            gridcolor="#e2e8f0",
             gridwidth=1,
-            linecolor="rgba(255, 255, 255, 0.06)",
+            linecolor="#e2e8f0",
             zeroline=False,
-            tickfont=dict(color="#8b8d9a"),
-            title=dict(font=dict(color="#e8e6e1", family="Plus Jakarta Sans")),
+            tickfont=dict(color="#64748b"),
+            title=dict(font=dict(color="#1a1a2e", family="Noto Sans JP, Inter, sans-serif")),
         ),
         yaxis=dict(
-            gridcolor="rgba(255, 255, 255, 0.06)",  # border-subtle
+            gridcolor="#e2e8f0",
             gridwidth=1,
-            linecolor="rgba(255, 255, 255, 0.06)",
+            linecolor="#e2e8f0",
             zeroline=False,
-            tickfont=dict(color="#8b8d9a"),
-            title=dict(font=dict(color="#e8e6e1", family="Plus Jakarta Sans")),
+            tickfont=dict(color="#64748b"),
+            title=dict(font=dict(color="#1a1a2e", family="Noto Sans JP, Inter, sans-serif")),
         ),
         
         # Legend
         legend=dict(
             bgcolor="rgba(0,0,0,0)",
-            bordercolor="rgba(255, 255, 255, 0.06)",
+            bordercolor="#e2e8f0",
             borderwidth=1,
-            font=dict(color="#8b8d9a", family="Plus Jakarta Sans"),
+            font=dict(color="#64748b", family="Noto Sans JP, Inter, sans-serif"),
         ),
         
         # Hover
         hovermode="closest",
         hoverlabel=dict(
-            bgcolor="#1c1c27",  # bg-card
-            bordercolor="rgba(201, 165, 92, 0.3)",  # border-accent
-            font=dict(color="#e8e6e1", family="Plus Jakarta Sans"),
+            bgcolor="#ffffff",
+            bordercolor="rgba(37, 99, 235, 0.3)",
+            font=dict(color="#1a1a2e", family="Noto Sans JP, Inter, sans-serif"),
         ),
     )
 )

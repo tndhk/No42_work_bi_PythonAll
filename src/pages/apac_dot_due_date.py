@@ -338,14 +338,14 @@ def update_table(
             },
             style_header={
                 "fontWeight": "bold",
-                "backgroundColor": "#4A5568",
+                "backgroundColor": "#2563eb",
                 "color": "white",
             },
             style_data_conditional=[
                 {
                     "if": {"filter_query": f'{{{breakdown_column}}} = "GRAND TOTAL"'},
                     "fontWeight": "bold",
-                    "backgroundColor": "#EDF2F7",
+                    "backgroundColor": "#eff6ff",
                 }
             ],
         )

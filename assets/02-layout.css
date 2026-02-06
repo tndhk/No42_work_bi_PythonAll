@@ -8,12 +8,6 @@
   width: 250px;
   height: 100vh;
   background-color: var(--bg-surface);
-  background: linear-gradient(
-    180deg,
-    rgba(22, 22, 30, 0.95) 0%,
-    rgba(28, 28, 39, 0.95) 100%
-  );
-  backdrop-filter: blur(10px);
   border-right: 1px solid var(--border-subtle);
   overflow-y: auto;
   z-index: 1000;
@@ -25,7 +19,7 @@
 }
 
 .sidebar-brand {
-  font-family: "Syne", sans-serif;
+  font-family: "Noto Sans JP", "Inter", sans-serif;
   font-size: 1.5rem;
   font-weight: 800;
   color: var(--accent-primary);
@@ -74,7 +68,7 @@
 .sidebar-logout-button {
   width: 100%;
   color: var(--text-secondary) !important;
-  font-family: "Plus Jakarta Sans", sans-serif !important;
+  font-family: "Noto Sans JP", "Inter", sans-serif !important;
   font-size: 0.875rem !important;
   text-align: left !important;
   padding: var(--spacing-md) var(--spacing-lg) !important;
@@ -125,7 +119,7 @@
 }
 
 .dashboard-card-title {
-  font-family: "Syne", sans-serif;
+  font-family: "Noto Sans JP", "Inter", sans-serif;
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-primary);
