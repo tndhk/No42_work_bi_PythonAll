@@ -1,6 +1,7 @@
 """
 カスタム例外クラスの定義
 """
+from typing import Optional
 
 
 class DatasetFileNotFoundError(RuntimeError):
@@ -11,7 +12,7 @@ class DatasetFileNotFoundError(RuntimeError):
     既存のcatchブロックとの後方互換性を維持する。
     """
 
-    def __init__(self, s3_path: str, dataset_id: str | None = None):
+    def __init__(self, s3_path: str, dataset_id: Optional[str] = None):
         """
         Args:
             s3_path: S3上のファイルパス

@@ -7,6 +7,10 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import io
+from unittest.mock import patch
+
+# Mock dash.register_page to avoid registration errors in tests
+patch("dash.register_page", lambda *args, **kwargs: None).start()
 
 
 @pytest.fixture(autouse=True)

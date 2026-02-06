@@ -1,5 +1,5 @@
 """Chart templates for Plotly Dash."""
-from typing import Any
+from typing import Any, Optional, Dict
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -9,8 +9,8 @@ from src.charts.plotly_theme import apply_theme
 
 def render_summary_number(
     dataset: pd.DataFrame,
-    filters: dict[str, Any] | None = None,
-    params: dict[str, Any] | None = None,
+    filters: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
 ) -> html.Div:
     """Render a summary number card.
 
@@ -69,8 +69,8 @@ def render_summary_number(
 
 def render_bar_chart(
     dataset: pd.DataFrame,
-    filters: dict[str, Any] | None = None,
-    params: dict[str, Any] | None = None,
+    filters: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
 ) -> go.Figure:
     """Render a bar chart.
 
@@ -105,8 +105,8 @@ def render_bar_chart(
 
 def render_line_chart(
     dataset: pd.DataFrame,
-    filters: dict[str, Any] | None = None,
-    params: dict[str, Any] | None = None,
+    filters: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
 ) -> go.Figure:
     """Render a line chart.
 
@@ -141,8 +141,8 @@ def render_line_chart(
 
 def render_pie_chart(
     dataset: pd.DataFrame,
-    filters: dict[str, Any] | None = None,
-    params: dict[str, Any] | None = None,
+    filters: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
 ) -> go.Figure:
     """Render a pie chart.
 
@@ -176,8 +176,8 @@ def render_pie_chart(
 
 def render_table(
     dataset: pd.DataFrame,
-    filters: dict[str, Any] | None = None,
-    params: dict[str, Any] | None = None,
+    filters: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
 ) -> html.Div:
     """Render a data table.
 
@@ -212,8 +212,8 @@ def render_table(
 
 def render_pivot_table(
     dataset: pd.DataFrame,
-    filters: dict[str, Any] | None = None,
-    params: dict[str, Any] | None = None,
+    filters: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
 ) -> html.Div:
     """Render a pivot table.
 

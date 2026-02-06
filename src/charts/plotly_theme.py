@@ -40,7 +40,7 @@ PLOTLY_TEMPLATE = go.layout.Template(
             linecolor="rgba(255, 255, 255, 0.06)",
             zeroline=False,
             tickfont=dict(color="#8b8d9a"),
-            titlefont=dict(color="#e8e6e1", family="Plus Jakarta Sans"),
+            title=dict(font=dict(color="#e8e6e1", family="Plus Jakarta Sans")),
         ),
         yaxis=dict(
             gridcolor="rgba(255, 255, 255, 0.06)",  # border-subtle
@@ -48,7 +48,7 @@ PLOTLY_TEMPLATE = go.layout.Template(
             linecolor="rgba(255, 255, 255, 0.06)",
             zeroline=False,
             tickfont=dict(color="#8b8d9a"),
-            titlefont=dict(color="#e8e6e1", family="Plus Jakarta Sans"),
+            title=dict(font=dict(color="#e8e6e1", family="Plus Jakarta Sans")),
         ),
         
         # Legend

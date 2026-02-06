@@ -1,12 +1,13 @@
 """KPI card components."""
+from typing import Optional, Union
 import dash_bootstrap_components as dbc
 from dash import html
 
 
 def create_kpi_card(
     title: str,
-    value: str | int | float,
-    subtitle: str | None = None,
+    value: Union[str, int, float],
+    subtitle: Optional[str] = None,
 ) -> dbc.Card:
     """
     Create a KPI display card.

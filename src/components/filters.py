@@ -1,4 +1,5 @@
 """Filter UI components."""
+from typing import Optional
 from dash import dcc
 import dash_bootstrap_components as dbc
 
@@ -37,8 +38,8 @@ def create_category_filter(
 def create_date_range_filter(
     filter_id: str,
     column_name: str,
-    min_date: str | None = None,
-    max_date: str | None = None,
+    min_date: Optional[str] = None,
+    max_date: Optional[str] = None,
 ) -> dbc.Card:
     """
     Create a date range filter (DatePickerRange) component.
