@@ -1,0 +1,375 @@
+# Plotly Dash BI Dashboard 技術仕様書 v0.1
+
+Last Updated: 2026-02-06
+
+## このドキュメントについて
+
+- 役割: 技術スタック・設定値・データ変換仕様の正式仕様
+- 関連: 開発者ガイドは [CONTRIB.md](CONTRIB.md) を参照
+
+---
+
+## 1. 技術スタック
+
+### 1.1 アプリケーション
+
+| 項目 | 技術 | バージョン | 理由 |
+|------|------|-----------|------|
+| フレームワーク | Plotly Dash | >=2.14.0 | インタラクティブダッシュボード |
+| UIコンポーネント | Dash Bootstrap Components | >=1.5.0 | Bootstrap統合 |
+| 認証 | Dash Auth | >=2.0.0 | Basic認証 |
+| 言語 | Python | 3.9+ | 安定性、パフォーマンス |
+| DataFrame | Pandas | >=2.0.0 | 標準的 |
+| Parquet | PyArrow | >=14.0.0 | 高速、メモリ効率 |
+| S3 | boto3 | >=1.34.0 | AWS SDK |
+| 可視化 | Plotly | >=5.0.0 | インタラクティブグラフ |
+| ログ | structlog | >=23.0.0 | 構造化ログ |
+
+### 1.2 ローカル開発
+
+| 項目 | 技術 | バージョン |
+|------|------|-----------|
+| コンテナ | Docker | 24.x |
+| オーケストレーション | docker-compose | 2.x |
+| S3互換 | MinIO | latest |
+
+---
+
+## 2. 設定値
+
+### 2.1 環境変数
+
+```bash
+# S3
+S3_ENDPOINT=http://localhost:9000  # ローカルのみ（MinIO）
+S3_REGION=ap-northeast-1
+S3_BUCKET=bi-datasets
+S3_ACCESS_KEY=minioadmin  # ローカルのみ
+S3_SECRET_KEY=minioadmin  # ローカルのみ
+
+# 認証
+BASIC_AUTH_USERNAME=admin
+BASIC_AUTH_PASSWORD=changeme
+```
+
+---
+
+## 3. データ変換仕様
+
+### 3.1 CSV → Parquet変換
+
+型推論ルール:
+
+| CSVデータパターン | 推論される型 |
+|------------------|------------|
+| 整数のみ（-999〜999...） | int64 |
+| 小数を含む数値 | float64 |
+| true/false/True/False/1/0 | bool |
+| ISO 8601日付（YYYY-MM-DD） | date |
+| ISO 8601日時（YYYY-MM-DDTHH:MM:SS） | datetime |
+| 上記以外 | string |
+
+変換オプション:
+
+```python
+@dataclass(frozen=True)
+class CsvImportOptions:
+    encoding: Optional[str] = None  # utf-8, shift_jis, cp932
+    delimiter: str = ","
+    has_header: bool = True
+    null_values: list[str] = ["", "NULL", "null", "NA", "N/A"]
+```
+
+エンコーディング検出:
+
+- 先頭10KBで `chardet` を使用して自動検出
+- 日本語エンコーディングの補正:
+  - `ascii` → `utf-8`
+  - `ISO-8859-1`, `Windows-1252` → `cp932`（日本語の場合）
+
+### 3.2 パーティション仕様
+
+パーティション分割:
+- 日付カラムが指定された場合、日単位でパーティション
+- パーティションキー: `YYYY-MM-DD`
+- パーティションなしの場合、単一Parquetファイル
+
+S3パス構造:
+
+```
+datasets/{datasetId}/
+  data/                    # パーティションなし
+    part-0000.parquet
+  partitions/              # パーティションあり
+    date=2024-01-01/
+      part-0000.parquet
+    date=2024-01-02/
+      part-0000.parquet
+```
+
+### 3.3 フィルタ適用ロジック
+
+カテゴリフィルタ:
+
+```python
+# 単一選択
+df = df[df[column] == value]
+
+# 複数選択
+df = df[df[column].isin(values)]
+
+# NULL許容
+if include_null:
+    df = df[(df[column].isin(values)) | (df[column].isna())]
+```
+
+日付フィルタ:
+
+```python
+# 期間フィルタ（境界を含む）
+df = df[(df[column] >= start_date) & (df[column] <= end_date)]
+
+# パーティションプルーニング
+# 日付フィルタがある場合、該当パーティションのみ読み込み
+partitions_to_read = [
+    p for p in all_partitions
+    if start_date <= p.date <= end_date
+]
+```
+
+日付境界ルール:
+- 開始日: 00:00:00 から（含む）
+- 終了日: 23:59:59 まで（含む）
+- タイムゾーン: JST（Asia/Tokyo）固定
+
+---
+
+## 4. チャートテンプレート
+
+### 4.1 利用可能なチャートタイプ
+
+| タイプ | 名前 | 説明 | パラメータ |
+|--------|------|------|-----------|
+| summary-number | Summary Number | 大きな数字表示 | `value_column`, `agg_func` (sum/mean/count/max/min) |
+| bar | Bar Chart | 棒グラフ | `x_column`, `y_column` |
+| line | Line Chart | 折れ線グラフ | `x_column`, `y_column` |
+| pie | Pie Chart | 円グラフ | `names_column`, `values_column` |
+| table | Table | テーブル表示 | （なし） |
+| pivot | Pivot Table | ピボットテーブル | `index_column`, `columns_column` (optional), `values_column`, `agg_func` |
+
+### 4.2 チャートテンプレートの使い方
+
+```python
+from src.charts.templates import get_chart_template
+
+# チャートタイプを取得
+template = get_chart_template("bar")
+
+# データセットとパラメータを指定してレンダリング
+figure = template["render"](
+    dataset=df,
+    filters=None,
+    params={"x_column": "category", "y_column": "amount"}
+)
+
+# Dashコンポーネントに配置
+dcc.Graph(figure=figure)
+```
+
+---
+
+## 5. データフロー
+
+### 5.1 データセット読み込みフロー
+
+```mermaid
+flowchart TB
+    User[ユーザ操作] --> Dash[Dashアプリ]
+    Dash --> ParquetReader[ParquetReader]
+    ParquetReader --> S3[S3/Parquet]
+    S3 --> DataFrame[DataFrame]
+    DataFrame --> Filter[フィルタ適用]
+    Filter --> Chart[チャート生成]
+    Chart --> Display[表示]
+```
+
+### 5.2 データセット一覧取得
+
+```python
+from src.data.parquet_reader import ParquetReader
+
+reader = ParquetReader()
+datasets = reader.list_datasets()  # S3のdatasets/配下をスキャン
+```
+
+### 5.3 データセット読み込み
+
+```python
+from src.data.parquet_reader import ParquetReader
+
+reader = ParquetReader()
+df = reader.read_dataset(dataset_id)  # datasets/{id}/data/part-0000.parquet を読み込み
+```
+
+### 5.4 データセット統計生成
+
+```python
+from src.data.dataset_summarizer import DatasetSummarizer
+from src.data.parquet_reader import ParquetReader
+
+reader = ParquetReader()
+summarizer = DatasetSummarizer(reader)
+summary = summarizer.generate_summary(dataset_id)
+
+# summary には以下が含まれる:
+# - schema: カラム定義（name, dtype, nullable）
+# - statistics: 列ごとの統計（min, max, mean, std, unique_count, top_values等）
+# - row_count: 行数
+# - column_count: 列数
+```
+
+---
+
+## 6. エラーハンドリング
+
+### 6.1 カスタム例外
+
+```python
+from src.exceptions import DatasetFileNotFoundError
+
+# S3にParquetファイルが存在しない場合
+raise DatasetFileNotFoundError(s3_path="datasets/xxx/data/part-0000.parquet", dataset_id="xxx")
+```
+
+### 6.2 エラーレスポンス
+
+Dashアプリでは、エラーはコールバック内でキャッチしてエラーメッセージを表示する。
+
+```python
+@callback(
+    Output("data-preview", "children"),
+    Input("dataset-dropdown", "value"),
+)
+def update_preview(dataset_id):
+    try:
+        reader = ParquetReader()
+        df = reader.read_dataset(dataset_id)
+        return dash_table.DataTable(...)
+    except DatasetFileNotFoundError:
+        return html.P("データセットが見つかりません", className="text-danger")
+    except Exception as e:
+        return html.P(f"エラー: {str(e)}", className="text-danger")
+```
+
+---
+
+## 7. ログ仕様
+
+### 7.1 ログ形式（JSON）
+
+```json
+{
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "level": "INFO",
+  "logger": "src.data.parquet_reader",
+  "message": "Dataset loaded",
+  "dataset_id": "ds_123"
+}
+```
+
+### 7.2 ログレベル
+
+| レベル | 用途 |
+|--------|------|
+| ERROR | エラー、例外 |
+| WARN | 警告（リトライ成功等） |
+| INFO | 通常操作（データセット読み込み等） |
+| DEBUG | デバッグ情報（ローカルのみ） |
+
+### 7.3 ログ設定
+
+```python
+from src.core.logging import setup_logging
+
+# アプリ起動時に呼び出す
+setup_logging()
+```
+
+---
+
+## 8. セキュリティ
+
+### 8.1 Basic認証
+
+Dash Authを使用したBasic認証:
+
+```python
+from src.auth.basic_auth import setup_auth
+
+app = Dash(__name__)
+setup_auth(app)  # .env の BASIC_AUTH_USERNAME / BASIC_AUTH_PASSWORD を使用
+```
+
+### 8.2 S3アクセス制御
+
+- ローカル開発: MinIOのデフォルト認証情報（minioadmin/minioadmin）
+- 本番環境: IAMロールまたはアクセスキーで制御
+
+---
+
+## 9. テスト戦略
+
+### 9.1 テストレベル
+
+| レベル | カバレッジ目標 | ツール |
+|--------|--------------|--------|
+| 単体テスト | 80% | pytest |
+
+### 9.2 テストデータ
+
+モック:
+- S3: moto または unittest.mock
+
+### 9.3 テスト実行
+
+```bash
+# バックエンド
+cd /path/to/project
+pytest --cov=src --cov-report=html
+```
+
+---
+
+## 10. 開発ツール設定
+
+### 10.1 Ruff設定
+
+`pyproject.toml`:
+
+```toml
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+```
+
+### 10.2 mypy設定
+
+`pyproject.toml`:
+
+```toml
+[tool.mypy]
+python_version = "3.9"
+strict = true
+allow_untyped_calls = true
+allow_untyped_defs = true
+```
+
+### 10.3 pytest設定
+
+`pyproject.toml`:
+
+```toml
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+```
