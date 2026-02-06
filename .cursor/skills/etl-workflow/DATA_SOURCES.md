@@ -113,7 +113,342 @@ etl = CsvETL(
 
 ---
 
-## API
+## DOMO API
+
+DOMO APIを使用してDataSetを取得し、Parquetに変換します。
+
+### 概要
+
+- **API種別**: REST API with OAuth2認証
+- **データ形式**: CSV形式でエクスポート
+- **ETLクラス**: [`backend/etl/etl_domo.py`](../../backend/etl/etl_domo.py) の `DomoApiETL`
+- **設定ファイル**: [`backend/config/domo_datasets.yaml`](../../backend/config/domo_datasets.yaml)
+- **実行スクリプト**: [`backend/scripts/load_domo.py`](../../backend/scripts/load_domo.py)
+
+### 事前準備
+
+#### 1. API Client作成
+
+1. [developer.domo.com](https://developer.domo.com) にログイン
+2. API Clientsページで新規作成
+3. 必要なスコープを有効化:
+   - `data` - DataSet操作（必須）
+   - `dashboard` - Page/Card操作（オプション）
+4. Client IDとClient Secretを取得
+
+#### 2. 認証情報の設定
+
+`.env` ファイルに追加:
+
+```env
+DOMO_CLIENT_ID=your-client-id-here
+DOMO_CLIENT_SECRET=your-client-secret-here
+```
+
+#### 3. Pydantic設定の確認
+
+[`src/data/config.py`](../../src/data/config.py) に以下が含まれていることを確認:
+
+```python
+class Settings(BaseSettings):
+    # ...existing settings...
+    
+    # DOMO API
+    domo_client_id: Optional[str] = None
+    domo_client_secret: Optional[str] = None
+```
+
+### DataSet設定ファイル
+
+[`backend/config/domo_datasets.yaml`](../../backend/config/domo_datasets.yaml) で全DataSetを一元管理:
+
+```yaml
+datasets:
+  - name: "APAC DOT Due Date"
+    domo_dataset_id: "c1cddf9d-3c25-4464-81bf-ee13e9ab1dd2"
+    minio_dataset_id: "apac-dot-due-date"
+    partition_column: "delivery completed date"
+    description: "APAC DOT join Due Date change"
+    enabled: true
+  
+  - name: "Sales Data"
+    domo_dataset_id: "xxx-yyy-zzz"
+    minio_dataset_id: "sales-data"
+    partition_column: "sale_date"
+    description: "Daily sales transactions"
+    enabled: true
+```
+
+**設定項目:**
+
+| 項目 | 必須 | 説明 | 例 |
+|------|------|------|-----|
+| `name` | ○ | DataSet識別名（人間向け） | "APAC DOT Due Date" |
+| `domo_dataset_id` | ○ | DOMO DataSet ID（UUID） | "c1cddf9d-..." |
+| `minio_dataset_id` | ○ | MinIOのdataset ID | "apac-dot-due-date" |
+| `partition_column` | | パーティション分割カラム | "delivery completed date" |
+| `description` | | DataSetの説明 | "APAC DOT..." |
+| `enabled` | ○ | 有効/無効フラグ | true / false |
+
+### DataSet IDの確認
+
+DOMO URLから取得:
+
+```
+https://disney.domo.com/datasources/c1cddf9d-3c25-4464-81bf-ee13e9ab1dd2/details/overview
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                   この部分がdomo_dataset_id
+```
+
+### 実行方法
+
+#### DataSet一覧を表示
+
+```bash
+python backend/scripts/load_domo.py --list
+```
+
+出力例:
+```
+=== Configured DOMO DataSets ===
+
+Total: 2 datasets
+Enabled: 2
+Disabled: 0
+
+1. [✓] APAC DOT Due Date
+   DOMO ID: c1cddf9d-3c25-4464-81bf-ee13e9ab1dd2
+   MinIO ID: apac-dot-due-date
+   Partition: delivery completed date
+```
+
+#### 特定DataSetを取得
+
+```bash
+python backend/scripts/load_domo.py --dataset "APAC DOT Due Date"
+```
+
+#### 全DataSetを一括取得
+
+```bash
+python backend/scripts/load_domo.py --all
+```
+
+#### ドライラン（実行内容確認のみ）
+
+```bash
+python backend/scripts/load_domo.py --all --dry-run
+```
+
+### DomoApiETLクラスの直接使用
+
+設定ファイルを使わず、直接コードで使用する場合:
+
+```python
+from backend.etl.etl_domo import DomoApiETL
+
+# ETLインスタンス作成
+etl = DomoApiETL(
+    dataset_id="c1cddf9d-3c25-4464-81bf-ee13e9ab1dd2",
+    partition_column="delivery completed date",
+)
+
+# ETL実行
+etl.run("apac-dot-due-date")
+```
+
+### DataSetメタデータの確認
+
+DataSetの構造を確認するスクリプト:
+
+```bash
+python backend/scripts/inspect_domo_dataset.py
+```
+
+出力例:
+```
+=== DataSet Information ===
+Name: APAC DOT join Due Date change(first time)
+Rows: 119466
+Columns: 43
+Created: 2024-09-24T07:52:30Z
+Updated: 2026-02-06T00:28:20Z
+
+=== Schema ===
+Column Name                              Type           
+-------------------------------------------------------
+delivery completed date                  DATE           
+delivery due date                        DATE           
+radar product id                         STRING         
+...
+
+=== Suggested Partition Columns ===
+  - delivery completed date
+  - delivery due date
+  - Delivery Completed Month
+```
+
+### パーティション分割の推奨
+
+#### 日付カラムあり（推奨）
+
+```yaml
+partition_column: "delivery completed date"
+```
+
+- S3パス: `datasets/{minio_dataset_id}/partitions/date=YYYY-MM-DD/part-0000.parquet`
+- 日付範囲フィルタが高速
+- データ更新時に特定日付のみ置き換え可能
+
+#### 日付カラムなし
+
+```yaml
+partition_column: null
+```
+
+- S3パス: `datasets/{minio_dataset_id}/data/part-0000.parquet`
+- 常に全データ読み込み
+- 小規模DataSetやマスタデータに適している
+
+### DataSet追加手順
+
+1. DOMO URLからDataSet IDを確認
+2. （オプション）`inspect_domo_dataset.py`でメタデータ確認
+3. `backend/config/domo_datasets.yaml`に設定追加
+4. `python backend/scripts/load_domo.py --dataset "New DataSet"`で実行
+5. MinIOコンソール（http://localhost:9001）で確認
+
+### 定期実行（スケジューリング）
+
+#### cron
+
+```bash
+# 毎日午前2時に全DataSet更新
+0 2 * * * cd /path/to/project && source .venv/bin/activate && python backend/scripts/load_domo.py --all
+```
+
+#### Airflow
+
+```python
+from airflow import DAG
+from airflow.operators.bash import BashOperator
+from datetime import datetime
+
+dag = DAG(
+    'domo_etl',
+    start_date=datetime(2026, 1, 1),
+    schedule_interval='0 2 * * *',  # 毎日午前2時
+)
+
+load_domo = BashOperator(
+    task_id='load_domo_datasets',
+    bash_command='cd /path/to/project && source .venv/bin/activate && python backend/scripts/load_domo.py --all',
+    dag=dag,
+)
+```
+
+### トラブルシューティング
+
+#### 認証エラー: 401 Unauthorized
+
+**原因:** Client IDまたはClient Secretが間違っている
+
+**対処法:**
+1. `.env`ファイルの認証情報を確認
+2. ダブルクォートが含まれている場合は削除
+3. developer.domo.comでClient Secretを再生成
+
+#### 権限エラー: 403 Forbidden
+
+**原因:** API Clientに必要なスコープが設定されていない
+
+**対処法:**
+1. developer.domo.comにアクセス
+2. API Clientの設定を開く
+3. Scopesセクションで`data`を追加
+4. 保存後、スクリプトを再実行
+
+#### DataSet not found: 404
+
+**原因:** DataSet IDが間違っている、またはアクセス権限がない
+
+**対処法:**
+1. DOMO URLからDataSet IDを再確認
+2. DOMOでDataSetへのアクセス権限を確認
+
+#### S3/MinIO接続エラー
+
+**原因:** MinIO認証情報が設定されていない
+
+**対処法:**
+
+`.env`に追加:
+```env
+S3_ENDPOINT=http://localhost:9000
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
+S3_BUCKET=bi-datasets
+```
+
+### パフォーマンス最適化
+
+#### 大規模DataSet（数十万行以上）
+
+1. **パーティション分割を活用**
+   - 日付カラムでパーティション分割
+   - クエリ時に必要な日付範囲のみ読み込み
+
+2. **不要なカラムを早期に削除**
+   ```python
+   class OptimizedDomoETL(DomoApiETL):
+       def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+           # 必要なカラムのみ選択
+           required_columns = ["id", "date", "value"]
+           df = df[required_columns]
+           return super().transform(df)
+   ```
+
+3. **定期実行の時間帯を分散**
+   - 複数DataSetがある場合、実行時間を分散
+   - DOMO APIのレート制限を考慮
+
+#### API Rate Limit対策
+
+DOMO APIにはレート制限があるため、大量のDataSetを連続実行する場合は注意が必要です。
+
+```bash
+# 1つずつ実行（エラー時に停止）
+python backend/scripts/load_domo.py --dataset "DataSet 1"
+python backend/scripts/load_domo.py --dataset "DataSet 2"
+
+# または、設定ファイルでenabledを調整
+```
+
+### セキュリティ
+
+1. **認証情報の管理**
+   - `.env`ファイルは`.gitignore`に含まれている
+   - Client Secretは絶対にコミットしない
+   - 定期的にClient Secretをローテーション
+
+2. **アクセス権限**
+   - API ClientにはDataアクセスに必要な最小限のスコープのみ付与
+   - 不要なDataSetへのアクセスは制限
+
+3. **データの取り扱い**
+   - 機密データはPDP（Personalized Data Permission）で制御
+   - MinIOのバックアップを定期的に取得
+
+### 参考リンク
+
+- [DOMO API Documentation](../../docs/DOMO/DOMO_API_Documentation.md)
+- [DOMO API Reference](../../docs/DOMO/DOMO_API_Reference.md)
+- [Backend Config README](../../backend/config/README.md)
+- [ETL Workflow SKILL](SKILL.md)
+
+---
+
+## 汎用API
 
 ### 認証方法
 

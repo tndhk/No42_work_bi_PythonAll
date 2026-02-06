@@ -24,3 +24,20 @@
     - `.dash-dropdown-content`, `.dash-options-list`, `.dash-dropdown-options`, `.dash-datepicker-content` へ `z-index: 9999 !important`
   - Docker利用時は `docker-compose.yml` に `./assets:/app/assets` を追加してCSSを確実に反映
   - 反映確認はブラウザのハードリロードで行う
+
+## ETL開発の注意点
+
+### DOMO API ETL
+- `.env`の値にダブルクォート不要: `DOMO_CLIENT_ID=abc123`（`"abc123"`は誤り）
+- `src/data/config.py`にPydantic設定追加必須: `domo_client_id: Optional[str] = None`
+- スクリプトで明示的に`.env`ロード: `load_dotenv(project_root / ".env")`
+- MinIO認証情報（ローカル）: `S3_ENDPOINT=http://localhost:9000`, `S3_ACCESS_KEY/SECRET_KEY=minioadmin`
+
+### データ検証
+- スタンドアロンスクリプトではキャッシュなし: `reader.read_dataset("id")`
+- `get_cached_dataset()`はFlaskアプリコンテキストが必要
+
+### パーティション分割
+- 1-10万行: 日付カラムあれば推奨
+- 10万行以上: 必須
+- 注意: NULL値レコードはパーティションから除外される（元データより行数が減る）

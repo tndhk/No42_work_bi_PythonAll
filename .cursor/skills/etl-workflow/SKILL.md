@@ -21,7 +21,12 @@ description: データ取得とETL処理のワークフロー。CSV、API、RDS�
 - [ ] `backend/scripts/` にETLスクリプトを作成
 - [ ] ETLスクリプトを実行してMinIOにアップロード
 
-### API
+### DOMO API
+- [ ] DOMO API認証情報を `.env` に設定（`DOMO_CLIENT_ID`, `DOMO_CLIENT_SECRET`）
+- [ ] `backend/config/domo_datasets.yaml` にDataSetを追加
+- [ ] `python backend/scripts/load_domo.py --dataset "DataSet Name"` で実行
+
+### 汎用API
 - [ ] APIエンドポイントと認証情報を確認
 - [ ] `ApiETL` を継承したカスタムETLクラスを作成
 - [ ] `backend/scripts/` にETLスクリプトを作成
@@ -141,7 +146,168 @@ etl.run("dataset-id")
 
 ---
 
-### Pattern 2: API
+### Pattern 1.5: DOMO API
+
+DOMO APIからDataSetを取得してParquetに変換します。設定ファイルベースの管理で、複数DataSetを効率的に運用できます。
+
+#### 事前準備
+
+1. **DOMO API認証情報の取得**
+   - [developer.domo.com](https://developer.domo.com) でAPI Client作成
+   - `data` スコープを有効化
+   - Client IDとClient Secretを取得
+
+2. **`.env` に認証情報を設定**
+
+```.env
+DOMO_CLIENT_ID=your-client-id
+DOMO_CLIENT_SECRET=your-client-secret
+```
+
+3. **Pydantic設定の確認**
+
+[`src/data/config.py`](src/data/config.py) に以下が含まれていることを確認：
+
+```python
+domo_client_id: Optional[str] = None
+domo_client_secret: Optional[str] = None
+```
+
+#### DataSet設定ファイル
+
+[`backend/config/domo_datasets.yaml`](backend/config/domo_datasets.yaml) で全DataSetを管理します。
+
+**設定例:**
+
+```yaml
+datasets:
+  - name: "APAC DOT Due Date"
+    domo_dataset_id: "c1cddf9d-3c25-4464-81bf-ee13e9ab1dd2"
+    minio_dataset_id: "apac-dot-due-date"
+    partition_column: "delivery completed date"
+    description: "APAC DOT join Due Date change"
+    enabled: true
+  
+  - name: "Sales Data"
+    domo_dataset_id: "xxx-yyy-zzz"
+    minio_dataset_id: "sales-data"
+    partition_column: "sale_date"
+    description: "Daily sales"
+    enabled: true
+```
+
+**設定項目:**
+- `name`: DataSet識別名（人間向け）
+- `domo_dataset_id`: DOMO DataSet ID（UUID、URLから取得）
+- `minio_dataset_id`: MinIOのdataset ID（パス名）
+- `partition_column`: パーティション分割するカラム名（なしなら`null`）
+- `description`: DataSetの説明
+- `enabled`: 有効/無効フラグ
+
+#### DomoApiETLクラス
+
+[`backend/etl/etl_domo.py`](backend/etl/etl_domo.py) の `DomoApiETL` クラスを使用します。
+
+**主要機能:**
+- OAuth2認証の自動処理
+- DataSetメタデータの取得
+- CSV形式でのデータエクスポート
+- 自動型推論とParquet変換
+- パーティション分割対応
+
+**直接使用例:**
+
+```python
+from backend.etl.etl_domo import DomoApiETL
+
+etl = DomoApiETL(
+    dataset_id="c1cddf9d-3c25-4464-81bf-ee13e9ab1dd2",
+    partition_column="delivery completed date",
+)
+
+etl.run("apac-dot-due-date")
+```
+
+#### 汎用ローダースクリプト
+
+[`backend/scripts/load_domo.py`](backend/scripts/load_domo.py) で設定ファイルベースの実行が可能です。
+
+**使用例:**
+
+```bash
+# DataSet一覧を表示
+python backend/scripts/load_domo.py --list
+
+# 特定DataSetを取得
+python backend/scripts/load_domo.py --dataset "APAC DOT Due Date"
+
+# 全DataSetを一括取得
+python backend/scripts/load_domo.py --all
+
+# ドライラン（実行内容確認のみ）
+python backend/scripts/load_domo.py --all --dry-run
+```
+
+#### DataSet追加手順
+
+1. DOMO URLからDataSet IDを取得
+   ```
+   https://disney.domo.com/datasources/c1cddf9d-3c25-4464-81bf-ee13e9ab1dd2/details/overview
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                      この部分がdomo_dataset_id
+   ```
+
+2. DataSetメタデータを確認（オプション）
+   ```bash
+   python backend/scripts/inspect_domo_dataset.py
+   ```
+   
+   これにより以下が確認できます：
+   - DataSet名・行数・カラム数
+   - スキーマ（カラム名と型）
+   - パーティション分割に適した日付カラム
+
+3. `backend/config/domo_datasets.yaml` に追加
+   ```yaml
+   - name: "New DataSet"
+     domo_dataset_id: "new-uuid"
+     minio_dataset_id: "new-dataset-id"
+     partition_column: "date_column"
+     description: "説明"
+     enabled: true
+   ```
+
+4. ETL実行
+   ```bash
+   python backend/scripts/load_domo.py --dataset "New DataSet"
+   ```
+
+#### パーティション分割の推奨
+
+**日付カラムあり（推奨）:**
+- `partition_column: "delivery completed date"`
+- S3パス: `datasets/{id}/partitions/date=YYYY-MM-DD/part-0000.parquet`
+- 日付範囲フィルタが高速
+
+**日付カラムなし:**
+- `partition_column: null`
+- S3パス: `datasets/{id}/data/part-0000.parquet`
+- 常に全データ読み込み
+
+#### 定期実行（将来対応）
+
+cron/Airflowでの自動更新に対応：
+
+```bash
+# 毎日午前2時に全DataSet更新
+0 2 * * * cd /path/to/project && source .venv/bin/activate && python backend/scripts/load_domo.py --all
+```
+
+詳細は [`backend/config/README.md`](backend/config/README.md) を参照してください。
+
+---
+
+### Pattern 2: 汎用API
 
 #### ApiETLの実装
 
@@ -494,9 +660,30 @@ def transform(self, df: pd.DataFrame) -> pd.DataFrame:
 
 ---
 
-## 検証チェックリスト
+## よくあるトラブルと解決策
 
-ETL実行後、以下を確認します：
+### 環境変数が読み込まれない
+- `.env`の値にダブルクォート不要: `KEY=value`（`"value"`は誤り）
+- Pydantic ValidationError: `config.py`に設定項目追加
+- スクリプトで`load_dotenv()`を明示的に呼び出す
+
+### S3/MinIO接続エラー
+- `NoCredentialsError`: `.env`に`S3_ACCESS_KEY`, `S3_SECRET_KEY`追加
+- ローカル開発: `S3_ENDPOINT=http://localhost:9000`
+
+### データ検証
+- Flask Cacheエラー: `reader.read_dataset("id")`を直接使用（キャッシュなし）
+- Dashアプリ内: `get_cached_dataset(reader, "id")`
+
+### パーティション分割
+- データ量1万行未満: 不要
+- 1-10万行: 推奨（日付カラムあり）
+- 10万行以上: 必須
+- NULL値レコードはパーティション除外される
+
+---
+
+## 検証チェックリスト
 
 - [ ] データソースからの取得が成功
 - [ ] データ型が適切に推論・変換されている
@@ -505,16 +692,14 @@ ETL実行後、以下を確認します：
 - [ ] MinIOコンソール（http://localhost:9001）でファイルを確認
 - [ ] ParquetReaderで読み込みテスト成功
 
-**読み込みテスト:**
+**スタンドアロン検証:**
 
 ```python
 from src.data.parquet_reader import ParquetReader
-from src.core.cache import get_cached_dataset
 
 reader = ParquetReader()
-df = get_cached_dataset(reader, "your-dataset-id")
+df = reader.read_dataset("your-dataset-id")
 print(f"Shape: {df.shape}")
-print(f"Columns: {df.columns.tolist()}")
 print(df.head())
 ```
 

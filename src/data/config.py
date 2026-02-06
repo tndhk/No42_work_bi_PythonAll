@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     
     # Auth provider type (future: "form" | "saml")
     auth_provider_type: str = "form"
+    
+    # DOMO API
+    domo_client_id: Optional[str] = None
+    domo_client_secret: Optional[str] = None
 
 
 settings = Settings()
