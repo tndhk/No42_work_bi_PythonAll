@@ -1,4 +1,4 @@
-# Plotly Dash BI Dashboard 技術仕様書 v0.1
+# Plotly Dash BI Dashboard 技術仕様書 v0.2
 
 Last Updated: 2026-02-06
 
@@ -6,6 +6,18 @@ Last Updated: 2026-02-06
 
 - 役割: 技術スタック・設定値・データ変換仕様の正式仕様
 - 関連: 開発者ガイドは [CONTRIB.md](CONTRIB.md) を参照
+
+## プロダクト概要
+
+Plotly Dash ベースの汎用 BI ダッシュボード。
+データソースごとに ETL スクリプトを用意し、S3/Parquet に統一出力。
+Dash アプリは S3 のクリーンデータを読んで可視化するだけ。
+
+### フェーズ分割
+
+- Phase 1: ダッシュボード基盤（マルチページ、サイドバー、チャート、フィルタ、キャッシュ、ETL）
+- Phase 2: LLM 質問機能（Vertex AI 連携、チャットパネル、サンドボックス実行）
+- Phase 3: 本番認証（SAML）、ロール管理
 
 ---
 
@@ -17,13 +29,24 @@ Last Updated: 2026-02-06
 |------|------|-----------|------|
 | フレームワーク | Plotly Dash | >=2.14.0 | インタラクティブダッシュボード |
 | UIコンポーネント | Dash Bootstrap Components | >=1.5.0 | Bootstrap統合 |
-| 認証 | Dash Auth | >=2.0.0 | Basic認証 |
+| 認証（ローカル） | Dash Auth | >=2.0.0 | Basic認証 |
+| 認証（本番） | SAML | - | 会社の IdP と連携（Phase 3） |
 | 言語 | Python | 3.9+ | 安定性、パフォーマンス |
 | DataFrame | Pandas | >=2.0.0 | 標準的 |
 | Parquet | PyArrow | >=14.0.0 | 高速、メモリ効率 |
 | S3 | boto3 | >=1.34.0 | AWS SDK |
 | 可視化 | Plotly | >=5.0.0 | インタラクティブグラフ |
 | ログ | structlog | >=23.0.0 | 構造化ログ |
+| キャッシュ | flask-caching / functools.lru_cache | - | TTL キャッシュ（実装時に決定） |
+| LLM（Phase 2） | Vertex AI SDK | - | Gemini Flash |
+
+### 1.3 アーキテクチャ
+
+- ダッシュボード定義: Python コードで管理（GUI ビルダーではない）
+- ページ構成: ページごとに自由に定義（データセット数もチャート構成もページごとに異なる）
+- ナビゲーション: 左サイドバー (Metabase / Redash 風)
+- デプロイ先: AWS ECS / Fargate
+- ローカル開発: Docker + docker-compose + MinIO
 
 ### 1.2 ローカル開発
 
@@ -32,6 +55,19 @@ Last Updated: 2026-02-06
 | コンテナ | Docker | 24.x |
 | オーケストレーション | docker-compose | 2.x |
 | S3互換 | MinIO | latest |
+
+### 1.4 ETL レイヤー
+
+- ETL はデータソースごとに独立した Python ファイル
+- ETL のスケジューリング: cron / systemd timer
+- ETL の出力先: 全て S3/Parquet に統一
+- Dash アプリは S3 のみ参照
+
+データソース例:
+- External API → `etl_api.py`
+- S3 Raw → `etl_s3.py`
+- RDS/DB → `etl_rds.py`
+- CSV Manual → `etl_csv.py`
 
 ---
 
@@ -47,9 +83,14 @@ S3_BUCKET=bi-datasets
 S3_ACCESS_KEY=minioadmin  # ローカルのみ
 S3_SECRET_KEY=minioadmin  # ローカルのみ
 
-# 認証
+# 認証（ローカル開発）
 BASIC_AUTH_USERNAME=admin
 BASIC_AUTH_PASSWORD=changeme
+
+# Vertex AI（Phase 2）
+# GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+# VERTEX_AI_PROJECT=your-project-id
+# VERTEX_AI_LOCATION=asia-northeast1
 ```
 
 ---
@@ -180,18 +221,67 @@ dcc.Graph(figure=figure)
 
 ## 5. データフロー
 
-### 5.1 データセット読み込みフロー
+### 5.1 全体データフロー
+
+```mermaid
+flowchart LR
+    subgraph sources [Data Sources]
+        API[External API]
+        S3src[S3 Raw]
+        RDS[RDS/DB]
+        CSV[CSV Manual]
+    end
+
+    subgraph etl [ETL Layer]
+        ETL1[etl_api.py]
+        ETL2[etl_s3.py]
+        ETL3[etl_rds.py]
+        ETL4[etl_csv.py]
+    end
+
+    subgraph storage [Unified Storage]
+        S3P[S3 Parquet]
+    end
+
+    subgraph dash [Dash App]
+        Reader[ParquetReader]
+        Cache[TTL Cache]
+        Pages[Pages]
+    end
+
+    API --> ETL1
+    S3src --> ETL2
+    RDS --> ETL3
+    CSV --> ETL4
+    ETL1 --> S3P
+    ETL2 --> S3P
+    ETL3 --> S3P
+    ETL4 --> S3P
+    S3P --> Reader
+    Reader --> Cache
+    Cache --> Pages
+```
+
+### 5.2 データセット読み込みフロー
 
 ```mermaid
 flowchart TB
     User[ユーザ操作] --> Dash[Dashアプリ]
-    Dash --> ParquetReader[ParquetReader]
+    Dash --> Cache[TTL Cache]
+    Cache -->|キャッシュヒット| DataFrame[DataFrame]
+    Cache -->|キャッシュミス| ParquetReader[ParquetReader]
     ParquetReader --> S3[S3/Parquet]
-    S3 --> DataFrame[DataFrame]
+    S3 --> DataFrame
     DataFrame --> Filter[フィルタ適用]
     Filter --> Chart[チャート生成]
     Chart --> Display[表示]
 ```
+
+### 5.3 キャッシュ仕様
+
+- TTL キャッシュ: メモリ上にデータを保持し、一定時間（例: 5分）は再利用
+- キャッシュキー: `dataset_id` + フィルタパラメータ
+- キャッシュ切れ時に S3 から再読み込み
 
 ### 5.2 データセット一覧取得
 
@@ -299,7 +389,9 @@ setup_logging()
 
 ## 8. セキュリティ
 
-### 8.1 Basic認証
+### 8.1 認証方式
+
+#### ローカル開発: Basic認証
 
 Dash Authを使用したBasic認証:
 
@@ -310,7 +402,17 @@ app = Dash(__name__)
 setup_auth(app)  # .env の BASIC_AUTH_USERNAME / BASIC_AUTH_PASSWORD を使用
 ```
 
-### 8.2 S3アクセス制御
+#### 本番環境: SAML認証（Phase 3）
+
+- 会社の IdP と連携
+- 実装方式は後続の設計フェーズで決定 (Cognito + SAML / ALB OIDC 等)
+
+### 8.2 権限管理（Phase 3）
+
+- 管理者 / 閲覧者 のロール分け想定
+- ページ単位でのアクセス制御
+
+### 8.3 S3アクセス制御
 
 - ローカル開発: MinIOのデフォルト認証情報（minioadmin/minioadmin）
 - 本番環境: IAMロールまたはアクセスキーで制御
@@ -373,3 +475,61 @@ allow_untyped_defs = true
 asyncio_mode = "auto"
 testpaths = ["tests"]
 ```
+
+---
+
+## 11. LLM 質問機能 (Phase 2)
+
+ダッシュボードに表示中のデータについて、LLM に質問して深掘りできる機能。
+
+### 11.1 基本仕様
+
+- モデル: Gemini Flash (Vertex AI) -- コスト重視
+- UI: 右サイドパネルにチャット UI（トグルで開閉）
+- 会話履歴: セッション中のみ保持（ページ遷移/リロードで消える）
+- コスト管理: 制限なし（チーム内利用のため）
+
+### 11.2 LLM に渡すコンテキスト
+
+- DatasetSummary（スキーマ、統計情報、行数・列数）
+- フィルタ適用後のサンプルデータ
+
+### 11.3 LLM の出力
+
+- テキスト回答（分析コメント、示唆）
+- pandas コード生成 + サンドボックス実行 + 結果表示
+
+### 11.4 コード実行の安全策
+
+- サンドボックス実行（制限付き exec）
+- 許可する操作を限定（ファイルシステムアクセス、ネットワーク呼び出し等は禁止）
+- 許可する pandas 操作の一覧は実装時に決定
+
+### 11.5 データフロー
+
+```mermaid
+flowchart TB
+    User[User Question] --> ChatPanel[Chat Panel]
+    ChatPanel --> BuildCtx[Build Context]
+    
+    DatasetSummary[DatasetSummary] --> BuildCtx
+    FilteredSample[Filtered Sample] --> BuildCtx
+    
+    BuildCtx --> VertexAPI[Vertex AI Gemini Flash]
+    VertexAPI --> Parse[Parse Response]
+    
+    Parse --> TextReply[Text Reply]
+    Parse --> CodeBlock[pandas Code]
+    
+    CodeBlock --> Sandbox[Sandbox Exec]
+    Sandbox --> Result[Result Display]
+    
+    TextReply --> ChatPanel
+    Result --> ChatPanel
+```
+
+### 11.6 実装時の設計判断
+
+- LLM サンドボックスの具体的な制限範囲（許可する pandas 操作の一覧）
+- LLM へのプロンプトテンプレート設計
+- Vertex AI SDK の認証方式（サービスアカウント / ADC）

@@ -7,6 +7,12 @@
 - 役割: 開発者向けクイックスタートガイド、開発コマンド、プロジェクト構造の説明
 - 関連: 技術仕様は [tech-spec.md](tech-spec.md) を参照
 
+## フェーズ分割
+
+- Phase 1: ダッシュボード基盤（マルチページ、サイドバー、チャート、フィルタ、キャッシュ、ETL）
+- Phase 2: LLM 質問機能（Vertex AI 連携、チャットパネル、サンドボックス実行）
+- Phase 3: 本番認証（SAML）、ロール管理
+
 ---
 
 ## 1. 前提条件
@@ -50,8 +56,11 @@ docker compose up --build
 | S3 | `S3_BUCKET` | `bi-datasets` | Datasetバケット名 |
 | S3 | `S3_ACCESS_KEY` | `test` | S3アクセスキー（ローカルのみ） |
 | S3 | `S3_SECRET_KEY` | `test` | S3シークレットキー（ローカルのみ） |
-| 認証 | `BASIC_AUTH_USERNAME` | `admin` | Basic認証ユーザ名 |
-| 認証 | `BASIC_AUTH_PASSWORD` | `changeme` | Basic認証パスワード |
+| 認証 | `BASIC_AUTH_USERNAME` | `admin` | Basic認証ユーザ名（ローカル開発） |
+| 認証 | `BASIC_AUTH_PASSWORD` | `changeme` | Basic認証パスワード（ローカル開発） |
+| Vertex AI（Phase 2） | `GOOGLE_APPLICATION_CREDENTIALS` | - | サービスアカウント JSON パス |
+| Vertex AI（Phase 2） | `VERTEX_AI_PROJECT` | - | GCP プロジェクト ID |
+| Vertex AI（Phase 2） | `VERTEX_AI_LOCATION` | `asia-northeast1` | Vertex AI リージョン |
 
 ---
 
@@ -79,6 +88,18 @@ docker compose up --build
 | `docker compose down -v` | 停止 + データ削除 |
 | `docker compose logs -f dash` | Dashアプリログ確認 |
 | `docker compose logs -f minio` | MinIOログ確認 |
+
+### ETL実行
+
+| コマンド | 説明 |
+|---------|------|
+| `python backend/etl/etl_api.py` | API ETL実行 |
+| `python backend/etl/etl_s3.py` | S3 ETL実行 |
+| `python backend/etl/etl_rds.py` | RDS ETL実行 |
+| `python backend/etl/etl_csv.py` | CSV ETL実行 |
+| `python scripts/upload_csv.py <file.csv>` | CSVアップロードCLI |
+
+ETL は cron / systemd timer で定期実行する想定。
 
 ---
 
@@ -152,26 +173,65 @@ No42_work_bi_PythonAll/
 ├── docker-compose.yml       # Docker Compose設定
 ├── Dockerfile.dev           # 開発用Dockerfile
 ├── pyproject.toml          # pytest/ruff/mypy設定
-└── src/
-    ├── __init__.py
-    ├── auth/                # 認証
-    │   └── basic_auth.py   # Basic認証設定
-    ├── data/               # データ層
-    │   ├── config.py      # 設定管理
-    │   ├── s3_client.py   # S3クライアント
-    │   ├── parquet_reader.py  # Parquet読み込み
-    │   ├── csv_parser.py   # CSV解析
-    │   ├── type_inferrer.py   # 型推論
-    │   ├── dataset_summarizer.py  # データセット統計
-    │   └── models.py      # データモデル
-    ├── charts/             # チャート
-    │   └── templates.py   # チャートテンプレート
-    ├── core/               # コア機能
-    │   └── logging.py     # ログ設定
-    ├── exceptions.py      # カスタム例外
-    ├── layout.py          # Dashレイアウト
-    └── callbacks.py       # Dashコールバック
+├── src/
+│   ├── __init__.py
+│   ├── auth/                # 認証
+│   │   └── basic_auth.py   # Basic認証設定
+│   ├── data/               # データ層
+│   │   ├── config.py      # 設定管理
+│   │   ├── s3_client.py   # S3クライアント
+│   │   ├── parquet_reader.py  # Parquet読み込み
+│   │   ├── csv_parser.py   # CSV解析
+│   │   ├── type_inferrer.py   # 型推論
+│   │   ├── dataset_summarizer.py  # データセット統計
+│   │   └── models.py      # データモデル
+│   ├── charts/             # チャート
+│   │   └── templates.py   # チャートテンプレート
+│   ├── core/               # コア機能
+│   │   └── logging.py     # ログ設定
+│   ├── pages/              # ページ定義（Phase 1）
+│   │   ├── __init__.py
+│   │   ├── dashboard_home.py
+│   │   └── ...            # 各ページの Python ファイル
+│   ├── components/          # UIコンポーネント（Phase 1）
+│   │   ├── __init__.py
+│   │   ├── filters.py     # フィルタコンポーネント
+│   │   ├── cards.py        # KPIカード
+│   │   └── ...
+│   ├── callbacks/          # コールバック（Phase 1）
+│   │   ├── __init__.py
+│   │   └── ...            # ページごとのコールバック
+│   ├── llm/                # LLM機能（Phase 2）
+│   │   ├── __init__.py
+│   │   ├── vertex_client.py  # Vertex AI クライアント
+│   │   ├── sandbox.py     # コードサンドボックス
+│   │   └── chat_panel.py  # チャットパネルUI
+│   ├── exceptions.py      # カスタム例外
+│   ├── layout.py          # Dashレイアウト（共通）
+│   └── callbacks.py       # Dashコールバック（共通）
+├── backend/                # ETLレイヤー（Phase 1）
+│   ├── data_sources/       # データソース接続
+│   │   ├── api_client.py
+│   │   ├── s3_client.py
+│   │   └── rds_client.py
+│   └── etl/                # ETLスクリプト
+│       ├── etl_api.py
+│       ├── etl_s3.py
+│       ├── etl_rds.py
+│       └── etl_csv.py
+└── scripts/                # CLIツール
+    └── upload_csv.py        # CSVアップロードCLI
 ```
+
+### ディレクトリ説明
+
+- `src/pages/`: 各ダッシュボードページの Python 定義ファイル
+- `src/components/`: 再利用可能な UI コンポーネント（フィルタ、カード等）
+- `src/callbacks/`: ページごとのコールバック関数
+- `src/llm/`: LLM 質問機能（Phase 2）
+- `backend/data_sources/`: 各種データソースへの接続クライアント
+- `backend/etl/`: ETL スクリプト（データソースごとに独立）
+- `scripts/`: CLI ツール（CSV アップロード等）
 
 ---
 
@@ -191,10 +251,40 @@ No42_work_bi_PythonAll/
 | structlog | >=23.0.0 | 構造化ログ |
 | python-dotenv | >=1.0.0 | 環境変数管理 |
 | pydantic-settings | >=2.0.0 | 設定管理 |
+| flask-caching | >=2.0.0 | TTLキャッシュ（Phase 1） |
+| google-cloud-aiplatform | >=1.0.0 | Vertex AI SDK（Phase 2） |
 
 ---
 
-## 10. 関連ドキュメント
+## 10. 開発フロー
+
+### Phase 1: ダッシュボード基盤
+
+1. マルチページルーティング実装（Dash Pages API）
+2. 左サイドバーナビゲーション実装
+3. ページ定義の仕組み構築（`src/pages/`）
+4. チャート表示 UI（既存テンプレート活用）
+5. フィルタ UI コンポーネント（カテゴリ/日付）
+6. TTL キャッシュ実装
+7. パーティション読み込み対応
+8. ETL スクリプト群作成（`backend/etl/`）
+9. CLI アップロードツール作成
+
+### Phase 2: LLM 質問機能
+
+1. Vertex AI クライアント実装
+2. チャットパネル UI 実装
+3. コンテキスト構築（DatasetSummary + サンプル）
+4. コードサンドボックス実装
+5. LLM レスポンス解析・実行
+
+### Phase 3: 本番認証・ロール管理
+
+1. SAML 認証実装
+2. ロール管理機能
+3. ページ単位アクセス制御
+
+## 11. 関連ドキュメント
 
 | ドキュメント | 内容 |
 |-------------|------|
