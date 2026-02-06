@@ -23,12 +23,12 @@ def layout():
         df = get_cached_dataset(reader, dataset_id)
 
         # Get unique values for filters
-        months = sorted(df["Delivery Completed Month"].unique().tolist()) if "Delivery Completed Month" in df.columns else []
-        areas = sorted(df["business area"].unique().tolist()) if "business area" in df.columns else []
-        workstreams = sorted(df["Metric Workstream"].unique().tolist()) if "Metric Workstream" in df.columns else []
-        vendors = sorted(df["Vendor: Account Name"].unique().tolist()) if "Vendor: Account Name" in df.columns else []
-        amp_vs_av = sorted(df["AMP VS AV Scope"].unique().tolist()) if "AMP VS AV Scope" in df.columns else []
-        order_types = sorted(df["order tags"].unique().tolist()) if "order tags" in df.columns else []
+        months = sorted(df["Delivery Completed Month"].dropna().unique().tolist()) if "Delivery Completed Month" in df.columns else []
+        areas = sorted(df["business area"].dropna().unique().tolist()) if "business area" in df.columns else []
+        workstreams = sorted(df["Metric Workstream"].dropna().unique().tolist()) if "Metric Workstream" in df.columns else []
+        vendors = sorted(df["Vendor: Account Name"].dropna().unique().tolist()) if "Vendor: Account Name" in df.columns else []
+        amp_vs_av = sorted(df["AMP VS AV Scope"].dropna().unique().tolist()) if "AMP VS AV Scope" in df.columns else []
+        order_types = sorted(df["order tags"].dropna().unique().tolist()) if "order tags" in df.columns else []
         
         # Count for PRC filter
         total_count = len(df)
