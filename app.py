@@ -28,6 +28,7 @@ app = Dash(
 # skips __init__.py (starts with '_'). See: dash/_pages.py line 431
 import src.pages.apac_dot_due_date  # noqa: F401
 import src.pages.cursor_usage  # noqa: F401
+import src.pages.hamm_overview  # noqa: F401
 
 # Initialize Flask-Login
 app.server.config["SECRET_KEY"] = settings.secret_key

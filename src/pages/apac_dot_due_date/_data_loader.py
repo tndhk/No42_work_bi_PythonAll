@@ -3,6 +3,7 @@
 Extracts data access concerns from the page module so that layout()
 and update_table() remain thin UI-only functions.
 """
+from typing import Optional
 import pandas as pd
 
 from src.data.parquet_reader import ParquetReader
@@ -14,7 +15,7 @@ from ._constants import COLUMN_MAP, COLUMN_MAP_2
 def load_filter_options(
     reader: ParquetReader,
     dataset_id: str,
-    dataset_id_2: str | None = None,
+    dataset_id_2: Optional[str] = None,
 ) -> dict:
     """Load filter option values from cached dataset.
 

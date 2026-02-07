@@ -1,0 +1,4 @@
+charts:
+  hamm-volume-table: hamm-dashboard
+  hamm-volume-chart: hamm-dashboard
+  hamm-task-table: hamm-dashboard
