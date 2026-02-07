@@ -7,7 +7,8 @@ the ``@callback`` decorator as a side effect.
 from dash import callback, html, Input, Output
 
 from src.data.parquet_reader import ParquetReader
-from ._constants import DATASET_ID
+from src.data.data_source_registry import get_dataset_id
+from ._constants import DASHBOARD_ID, CHART_ID_REFERENCE_TABLE, DATASET_ID
 from ._data_loader import load_and_filter_data
 from .charts import _ch00_reference_table
 
@@ -48,9 +49,10 @@ def update_all_charts(
     reader = ParquetReader()
 
     try:
+        dataset_id = get_dataset_id(DASHBOARD_ID, CHART_ID_REFERENCE_TABLE) or DATASET_ID
         filtered_df = load_and_filter_data(
             reader,
-            DATASET_ID,
+            dataset_id,
             selected_months=selected_months,
             prc_filter_value=prc_filter_value,
             area_values=area_values,

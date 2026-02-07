@@ -4,11 +4,17 @@ Centralizes dataset identifiers, column name mappings, and ID prefixes
 to avoid hardcoded strings scattered across layout and callback code.
 """
 
-# S3/Parquet dataset identifier
+# Dashboard identifier (used for config lookup)
+DASHBOARD_ID: str = "apac_dot_due_date"
+
+# S3/Parquet dataset identifier (legacy fallback)
 DATASET_ID: str = "apac-dot-due-date"
 
 # Component ID namespace prefix (for avoiding collisions with other pages)
 ID_PREFIX: str = "apac-dot-"
+
+# Chart IDs used in this dashboard
+CHART_ID_REFERENCE_TABLE: str = "apac-dot-chart-00"
 
 # Mapping from logical filter ID to the actual DataFrame column name.
 # Keys are short identifiers used in code; values are the raw column names

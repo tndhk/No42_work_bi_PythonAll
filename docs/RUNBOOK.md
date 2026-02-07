@@ -1,11 +1,11 @@
 # 運用ガイド (RUNBOOK)
 
-Last Updated: 2026-02-07 (rev.2)
+Last Updated: 2026-02-07 (rev.3)
 
 ## このドキュメントについて
 
 - 役割: デプロイメント、モニタリング、トラブルシューティング、ロールバック手順
-- 関連: 開発者ガイドは [CONTRIB.md](CONTRIB.md)、技術仕様は [tech-spec.md](tech-spec.md) を参照
+- 関連: 開発者ガイドは `docs/CONTRIB.md`、技術仕様は `docs/tech-spec.md` を参照
 
 ---
 
@@ -85,43 +85,35 @@ aws logs tail /ecs/bi-dashboard --follow
 
 ## 3. 環境設定（本番）
 
-### 必須環境変数（本番環境）
+### ベース環境変数（.env.example 由来）
 
 | 変数 | 説明 | 備考 |
 |------|------|------|
-| `S3_ENDPOINT` | AWS S3 エンドポイント | 本番: `https://s3.ap-northeast-1.amazonaws.com`（空文字列でも可） |
+| `S3_ENDPOINT` | S3 エンドポイント | 本番: `https://s3.ap-northeast-1.amazonaws.com`（空文字列でも可） |
 | `S3_REGION` | AWS リージョン | `ap-northeast-1` |
 | `S3_BUCKET` | データセットバケット | 本番用 S3 バケット名 |
 | `S3_ACCESS_KEY` | IAM アクセスキー | AWS Secrets Manager より取得（IAMロール使用時は不要） |
 | `S3_SECRET_KEY` | IAM シークレットキー | AWS Secrets Manager より取得（IAMロール使用時は不要） |
 | `BASIC_AUTH_USERNAME` | 認証ユーザー名 | 本番は SAML に置き換え（Phase 3） |
 | `BASIC_AUTH_PASSWORD` | 認証パスワード | AWS Secrets Manager より取得 |
-| `SECRET_KEY` | Flaskセッション秘密鍵 | AWS Secrets Manager より取得（ランダム文字列。本番では必ず固定値を設定すること） |
-| `AUTH_PROVIDER_TYPE` | 認証プロバイダ種別 | `form`（Phase 3で `saml` に切替可能） |
 
-### DOMO ETL用環境変数（ETLサーバーのみ）
+### 追加設定（.env.example 以外）
+
+本番運用では以下の設定が必要になる場合があります。`.env.example` には含まれていないため、運用側で明示的に管理します。
 
 | 変数 | 説明 | 備考 |
 |------|------|------|
+| `SECRET_KEY` | Flaskセッション秘密鍵 | Secrets Manager より取得（本番では固定値が必要） |
+| `AUTH_PROVIDER_TYPE` | 認証プロバイダ種別 | `form`（Phase 3で `saml` に切替可能） |
 | `DOMO_CLIENT_ID` | DOMO API Client ID | DOMO Developer Portalで発行 |
 | `DOMO_CLIENT_SECRET` | DOMO API Client Secret | DOMO Developer Portalで発行 |
-
-### RDS用環境変数（ETL使用時のみ）
-
-| 変数 | 説明 | 備考 |
-|------|------|------|
-| `RDS_HOST` | RDS エンドポイント | RDS インスタンスのエンドポイント |
+| `RDS_HOST` | RDS エンドポイント | RDS 使用時のみ |
 | `RDS_PORT` | RDS ポート | 通常 `5432` |
 | `RDS_USER` | RDS ユーザー | Secrets Manager より取得 |
-| `RDS_PASSWORD` | RDS パスワード | AWS Secrets Manager より取得 |
+| `RDS_PASSWORD` | RDS パスワード | Secrets Manager より取得 |
 | `RDS_DATABASE` | データベース名 | - |
-
-### 将来の環境変数（Phase 2: LLM機能）
-
-| 変数 | 説明 | 備考 |
-|------|------|------|
-| `GOOGLE_APPLICATION_CREDENTIALS` | GCP サービスアカウント JSON | Vertex AI |
-| `VERTEX_AI_PROJECT` | GCP プロジェクト ID | - |
+| `GOOGLE_APPLICATION_CREDENTIALS` | GCP サービスアカウント JSON | Vertex AI 使用時 |
+| `VERTEX_AI_PROJECT` | GCP プロジェクト ID | Vertex AI 使用時 |
 | `VERTEX_AI_LOCATION` | Vertex AI リージョン | `asia-northeast1` |
 
 ### AWS Secrets Manager でシークレット管理
@@ -199,7 +191,7 @@ aws ecs describe-tasks --cluster bi-dashboard-cluster --tasks <TASK_ARN>
 
 解決策:
 
-- 環境変数が正しく設定されているか確認（特に `SECRET_KEY` が本番環境で設定されているか）
+- 環境変数が正しく設定されているか確認（特に `SECRET_KEY`）
 - S3 バケットへのアクセス権限確認
 - Docker イメージのビルドエラーを確認
 
@@ -398,85 +390,3 @@ pip-audit requirements.txt
 - [ ] S3 バケット作成 & IAM ポリシー設定
 - [ ] ECR リポジトリ作成
 - [ ] ECS クラスター & サービス作成
-- [ ] CloudWatch ロググループ作成
-- [ ] AWS Secrets Manager でシークレット登録
-  - [ ] S3_ACCESS_KEY / S3_SECRET_KEY
-  - [ ] BASIC_AUTH_PASSWORD
-  - [ ] SECRET_KEY（ランダム文字列）
-  - [ ] DOMO_CLIENT_ID / DOMO_CLIENT_SECRET（ETL使用時）
-- [ ] SSL/TLS 証明書の設定
-- [ ] DNS / ロードバランサー設定
-- [ ] バックアップ戦略の実装
-- [ ] 災害復旧計画の文書化
-- [ ] ETLスケジュール設定（cron / systemd timer）
-
----
-
-## 9. ETL運用
-
-### DOMO ETL定期実行
-
-DOMO からのデータ取得はスケジューリングが必要。
-
-```bash
-# crontab例: 毎日午前6時に全有効データセットをロード
-0 6 * * * cd /path/to/project && python backend/scripts/load_domo.py --all >> /var/log/domo-etl.log 2>&1
-```
-
-### CSV ETL定期実行
-
-CSV ファイルからのデータロードもスケジューリング可能。
-
-```bash
-# crontab例: 毎日午前5時に全有効CSVデータセットをロード
-0 5 * * * cd /path/to/project && python backend/scripts/load_csv.py --all >> /var/log/csv-etl.log 2>&1
-```
-
-CSV ETLの設定は `backend/config/csv_datasets.yaml` で管理する。DOMOパターンと同一の設定駆動方式。
-
-### データセットの追加（DOMO）
-
-1. `backend/config/domo_datasets.yaml` に新しいデータセットを追加
-2. `enabled: true` に設定
-3. `python backend/scripts/load_domo.py --dataset "Name"` で取得テスト
-4. `src/pages/` に新しいダッシュボードページを作成（モジュール化パターンは `src/pages/apac_dot_due_date/` を参照）
-
-### データセットの追加（CSV）
-
-1. `backend/config/csv_datasets.yaml` に新しいデータセットを追加
-2. `enabled: true` に設定
-3. `python backend/scripts/load_csv.py --dataset "Name"` でロードテスト
-4. 設定例:
-
-```yaml
-datasets:
-  - name: "New Dataset"
-    minio_dataset_id: "new-dataset"
-    source_dir: "backend/data_sources"
-    file_pattern: "*.csv"
-    partition_column: "date_column"  # or null
-    enabled: true
-    description: "Description"
-```
-
-### データセットの削除/再取り込み
-
-```bash
-# データセット削除
-python backend/scripts/clear_dataset.py <dataset_id>
-
-# 再取り込み（DOMO）
-python backend/scripts/load_domo.py --dataset "Name"
-
-# 再取り込み（CSV）
-python backend/scripts/load_csv.py --dataset "Name"
-```
-
----
-
-## 10. 参考資料
-
-- AWS ECS デプロイメントガイド: https://docs.aws.amazon.com/ja_jp/AmazonECS/latest/developerguide/
-- AWS Secrets Manager: https://docs.aws.amazon.com/ja_jp/secretsmanager/
-- CloudWatch ログ: https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/
-- DOMO API Documentation: https://developer.domo.com/portal/3b1e3a7d5f420-data-set-api

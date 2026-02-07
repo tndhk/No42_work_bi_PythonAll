@@ -1,148 +1,33 @@
-# Codemap Update Report
+Codemap Diff Report
+Generated: 2026-02-07T03:05:43Z
 
-Generated: 2026-02-06
-Previous Version: 2026-02-06 (initial creation)
-Trigger: Full codemap refresh based on static analysis of all source files
+codemaps/architecture.md: 10.6% change
+Modified sections:
+- # Architecture Codemap
+- ## Dependency Flow
+- ## Layer Overview
+- ## Page Modularity
+- ## System Architecture
 
-## Diff Summary
+codemaps/backend.md: 12.5% change
+Modified sections:
+- # Backend Codemap
+- ## Module Dependency Graph
+- ## Scripts
 
-| File | Action | Old Lines | New Lines | Change % |
-|------|--------|-----------|-----------|----------|
-| codemaps/architecture.md | CREATED | 0 | 139 | 100% (new) |
-| codemaps/backend.md | REWRITTEN | 164 | 194 | ~65% |
-| codemaps/frontend.md | REWRITTEN | 246 | 244 | ~55% |
-| codemaps/data.md | REWRITTEN | 286 | 312 | ~50% |
+codemaps/frontend.md: 8.3% change
+Modified sections:
+- # Frontend Codemap
+- ## Component Hierarchy
+- ## Pages
+- ## Testing
 
-Overall change rate: ~67% (threshold: 30% -- exceeded, user approval obtained)
+codemaps/data.md: 8.6% change
+Modified sections:
+- # Data Layer Codemap
+- ## Data Flow (Read Path)
+- ## Key Classes and Functions
+- ## Module Dependency Graph
+- ## Testing
 
-## Detailed Changes per File
-
-### codemaps/architecture.md (NEW)
-
-New file providing system-level architecture overview.
-
-Contents:
-- ASCII system architecture diagram (Browser -> Dash -> Data -> S3, ETL -> DOMO/CSV)
-- Layer overview table (10 layers with status)
-- app.py dependency flow
-- Technology stack table (13 technologies with versions)
-- Docker Compose deployment diagram
-- Environment variables table (11 variables)
-- Cross-references to other codemaps
-
-### codemaps/backend.md
-
-Corrections from previous version:
-- [REMOVED] data_sources/api_client.py -- file does not exist
-- [REMOVED] data_sources/rds_client.py -- file does not exist
-- [REMOVED] data_sources/s3_client.py -- file does not exist
-- [REMOVED] validate() method from BaseETL -- not in actual code
-- [CORRECTED] Class names: APIETLJob -> ApiETL, S3ETLJob -> S3RawETL,
-              RDSETLJob -> RdsETL, CSVETLJob -> CsvETL
-- [CORRECTED] BaseETL.load() signature: now includes dataset_id and partition_column params
-- [ADDED] etl_domo.py (DomoApiETL) -- DOMO API OAuth2 ETL with exclude_filter
-- [ADDED] backend/scripts/ section -- load_domo.py, load_cursor_usage.py, clear_dataset.py
-- [ADDED] scripts/upload_csv.py -- generic CSV upload CLI
-- [ADDED] backend/config/domo_datasets.yaml -- YAML configuration reference
-- [ADDED] Stub ETL status table (ApiETL, RdsETL, S3RawETL all NotImplementedError)
-- [ADDED] Test file listing (tests/etl/, tests/scripts/)
-- [REMOVED] Speculative cron/Lambda orchestration (not implemented)
-- [REMOVED] Speculative error handling patterns (retry with backoff not in BaseETL)
-
-### codemaps/frontend.md
-
-Corrections from previous version:
-- [CORRECTED] Authentication: Dash-Auth -> Flask-Login with custom AuthProvider protocol
-- [CORRECTED] Layout flow: create_layout() now returns minimal shell; layout_callbacks
-              determines content based on authentication state
-- [CORRECTED] filters.py: removed non-existent create_custom_filter()
-- [CORRECTED] cards.py signature: create_kpi_card(title, value, subtitle) not (value, label, icon)
-- [CORRECTED] charts/templates.py exports: render_summary_number/render_bar_chart/etc.
-              not create_line_chart/create_bar_chart/create_scatter_plot
-- [ADDED] Full auth module: flask_login_setup.py, providers.py, login_layout.py,
-          login_callbacks.py, layout_callbacks.py
-- [ADDED] sidebar_callbacks.py (logout handling)
-- [ADDED] plotly_theme.py (dark theme with gold accent palette)
-- [ADDED] 3 actual pages with imports and callback flows:
-          dashboard_home.py, cursor_usage.py, apac_dot_due_date.py
-- [ADDED] Chart Template Registry table (6 chart types)
-- [ADDED] Style Architecture section (7 CSS files with purposes)
-- [ADDED] Auth Provider Pattern (Protocol + FormAuthProvider)
-- [ADDED] Test file listing (8 test files)
-- [REMOVED] Speculative pages (sales_analysis.py, inventory_report.py)
-- [REMOVED] Phase 2 LLM Chat Panel (speculative, not implemented)
-- [REMOVED] Speculative performance patterns (dash_defer, aggregation pushdown)
-
-### codemaps/data.md
-
-Corrections from previous version:
-- [CORRECTED] parquet_reader.py: function-based -> class-based ParquetReader
-              with read_dataset(dataset_id, date_range) signature
-- [CORRECTED] csv_parser.py: parse_csv() -> parse_preview()/parse_full()
-              with CsvImportOptions dataclass
-- [CORRECTED] type_inferrer.py: infer_types() -> infer_column_type()/infer_schema()/apply_types()
-              with ColumnSchema model
-- [CORRECTED] filter_engine.py: FilterSpec with operators ->
-              CategoryFilter/DateRangeFilter/FilterSet frozen dataclasses
-- [CORRECTED] models.py: Pydantic BaseModel -> dataclass ColumnSchema only
-              (DatasetRef, FilterRequest, DatasetMetadata do not exist)
-- [CORRECTED] dataset_summarizer.py: functions -> DatasetSummarizer class
-              with summarize() and generate_summary() methods
-- [CORRECTED] cache.py: decorator-based -> get_cached_dataset() function
-              with "dataset:{id}" key format
-- [CORRECTED] Settings: added secret_key, auth_provider_type, domo_client_id/secret
-- [ADDED] exceptions.py: DatasetFileNotFoundError(RuntimeError)
-- [ADDED] core/logging.py: setup_logging() with structlog
-- [ADDED] Data Flow (Read Path) diagram
-- [ADDED] Data Flow (Write Path) diagram
-- [ADDED] Date format recognition list (6 formats)
-- [ADDED] Test file listing (11 test files)
-- [REMOVED] Speculative S3 path structure (raw/processed/archive)
-- [REMOVED] Speculative partition scheme (yearly=YYYY/monthly=MM)
-- [REMOVED] Speculative performance examples (column selection, filter pushdown)
-- [REMOVED] Phase 2 LLM context building (not implemented)
-- [REMOVED] Speculative error handling (retry with backoff not in data layer)
-
-## Root Cause of Drift
-
-The previous codemap version was generated speculatively before full implementation.
-Many API signatures, class names, and module structures were projected rather than
-derived from actual source code. This update corrects all discrepancies by performing
-static analysis of every .py file in the repository.
-
-Key categories of drift:
-1. API signature mismatches (function names, parameters, return types)
-2. Non-existent files documented (data_sources/*.py)
-3. Non-existent classes/methods documented (FilterSpec, DatasetRef, validate())
-4. Missing implemented features (DOMO ETL, Flask-Login auth, scripts)
-5. Speculative future features documented as current (LLM chat, scatter_plot)
-
-## Quality Checklist
-
-- [x] All documented file paths verified to exist
-- [x] All class names match actual source code
-- [x] All function signatures match actual source code
-- [x] All import relationships verified against actual imports
-- [x] Non-existent modules removed
-- [x] Stub/skeleton status clearly marked
-- [x] Freshness timestamps added (2026-02-06)
-- [x] Cross-references between codemaps verified
-- [x] Test file listings verified to exist
-- [x] User approval obtained (change rate 67% > 30% threshold)
-
-## File Inventory
-
-```
-codemaps/
-  architecture.md  (NEW)     139 lines  System architecture overview
-  backend.md       (UPDATED) 194 lines  ETL pipelines and scripts
-  frontend.md      (UPDATED) 244 lines  UI components, pages, auth
-  data.md          (UPDATED) 312 lines  Data layer, models, S3 I/O
-
-.reports/
-  codemap-diff.txt (THIS FILE)
-```
-
-Total codemap lines: 889
-Previous total: 696
-Net change: +193 lines (+28%)
+Overall average change: 10.0%

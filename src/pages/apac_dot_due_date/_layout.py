@@ -7,7 +7,8 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from src.data.parquet_reader import ParquetReader
-from ._constants import DATASET_ID
+from src.data.data_source_registry import get_dataset_id
+from ._constants import DASHBOARD_ID, CHART_ID_REFERENCE_TABLE, DATASET_ID
 from ._data_loader import load_filter_options
 from ._filters import build_filter_layout
 
@@ -23,7 +24,8 @@ def build_layout() -> html.Div:
     """
     # Load data to get available options for filters
     reader = ParquetReader()
-    opts = load_filter_options(reader, DATASET_ID)
+    dataset_id = get_dataset_id(DASHBOARD_ID, CHART_ID_REFERENCE_TABLE) or DATASET_ID
+    opts = load_filter_options(reader, dataset_id)
 
     # Build filter rows via _filters module
     filter_rows = build_filter_layout(opts)

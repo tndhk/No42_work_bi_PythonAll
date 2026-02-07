@@ -1,7 +1,8 @@
 # Backend Codemap
 
 Last Updated: 2026-02-07
-Entry Points: `backend/scripts/load_domo.py`, `backend/scripts/load_cursor_usage.py`, `scripts/upload_csv.py`
+Freshness: 2026-02-07T03:05:43Z
+Entry Points: `backend/scripts/load_domo.py`, `backend/scripts/load_csv.py`, `scripts/upload_csv.py`
 
 ## Module Dependency Graph
 
@@ -41,9 +42,9 @@ backend/
 |   |   Imports: etl_domo.DomoApiETL, yaml, dotenv
 |   |   CLI: --list, --dataset <name>, --all, --dry-run
 |   |
-|   +-- load_cursor_usage.py
-|   |   Imports: etl_csv.CsvETL
-|   |   Loads: CSV -> cursor-usage dataset (partitioned by Date)
+|   +-- load_csv.py
+|   |   Imports: etl_csv.CsvETL, yaml, dotenv
+|   |   CLI: --list, --dataset <name>, --all, --dry-run
 |   |
 |   +-- clear_dataset.py
 |       Imports: src.data.s3_client, src.data.config
@@ -51,7 +52,9 @@ backend/
 |
 +-- config/
 |   +-- domo_datasets.yaml
-|       Defines DOMO DataSet mappings (domo_id -> minio_id)
+|       Defines DOMO dataset mappings
+|   +-- csv_datasets.yaml
+|       Defines CSV dataset mappings
 |
 +-- data_sources/
     (empty -- reserved for future data source clients)
@@ -133,7 +136,7 @@ YAML-driven DOMO dataset loader.
 
 ```
 Usage:
-  python backend/scripts/load_domo.py --list          # Show configured datasets
+  python backend/scripts/load_domo.py --list           # Show configured datasets
   python backend/scripts/load_domo.py --dataset "name" # Load specific dataset
   python backend/scripts/load_domo.py --all            # Load all enabled
   python backend/scripts/load_domo.py --all --dry-run  # Preview only
@@ -141,25 +144,19 @@ Usage:
 
 Config: `backend/config/domo_datasets.yaml`
 
-```yaml
-datasets:
-  - name: "APAC DOT join Due Date change(first time)"
-    domo_dataset_id: "c1cddf9d-..."
-    minio_dataset_id: "apac-dot-due-date"
-    partition_column: "delivery completed date"
-    enabled: true
-    exclude_filter:
-      column: "exclude_flg"
-      keep_value: "Not Exclude"
+### load_csv.py
+
+YAML-driven CSV dataset loader.
+
+```
+Usage:
+  python backend/scripts/load_csv.py --list           # Show configured datasets
+  python backend/scripts/load_csv.py --dataset "name" # Load specific dataset
+  python backend/scripts/load_csv.py --all            # Load all enabled
+  python backend/scripts/load_csv.py --all --dry-run  # Preview only
 ```
 
-### load_cursor_usage.py
-
-Loads a specific CSV file for the cursor-usage dataset.
-```
-Source: backend/data_sources/team-usage-events-*.csv
-Target: cursor-usage (partitioned by Date)
-```
+Config: `backend/config/csv_datasets.yaml`
 
 ### clear_dataset.py
 
@@ -198,12 +195,4 @@ tests/etl/
   test_base_etl.py         # BaseETL.load S3 writes
   test_etl_csv.py          # CsvETL extract/transform/load
   test_etl_skeletons.py    # Stub classes raise NotImplementedError
-  test_resolve_csv_path.py # resolve_csv_path glob matching
-tests/scripts/
-  test_upload_csv.py       # CLI argument parsing and execution
 ```
-
-## Related Codemaps
-
-- `codemaps/data.md` -- csv_parser, type_inferrer, s3_client used by ETL
-- `codemaps/architecture.md` -- System overview

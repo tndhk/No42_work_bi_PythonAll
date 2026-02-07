@@ -3,9 +3,10 @@ from dash import html, callback, Input, Output, dash_table
 import plotly.graph_objects as go
 
 from src.data.parquet_reader import ParquetReader
+from src.data.data_source_registry import get_dataset_id
 from src.components.cards import create_kpi_card
 from src.charts.templates import render_line_chart, render_bar_chart, render_pie_chart
-from ._constants import DATASET_ID, ID_PREFIX
+from ._constants import DASHBOARD_ID, CHART_ID_COST_TREND, ID_PREFIX
 from ._data_loader import load_and_filter_data
 
 
@@ -41,8 +42,14 @@ def update_dashboard(start_date, end_date, model_values):
 
     try:
         # Load and filter data
+        dataset_id = get_dataset_id(DASHBOARD_ID, CHART_ID_COST_TREND)
+        if dataset_id is None:
+            raise ValueError(
+                f"Dataset ID not found for dashboard '{DASHBOARD_ID}' and chart '{CHART_ID_COST_TREND}'"
+            )
+
         filtered_df = load_and_filter_data(
-            reader, DATASET_ID, start_date, end_date, model_values
+            reader, dataset_id, start_date, end_date, model_values
         )
 
         if len(filtered_df) == 0:

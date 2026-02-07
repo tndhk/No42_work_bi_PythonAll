@@ -1,6 +1,7 @@
 # Architecture Codemap
 
 Last Updated: 2026-02-07
+Freshness: 2026-02-07T03:05:43Z
 Entry Point: `app.py`
 Runtime: Python 3.9+ / Plotly Dash 2.14+
 
@@ -37,7 +38,8 @@ Runtime: Python 3.9+ / Plotly Dash 2.14+
            | Data access     |      | Chart templates   |
            | S3/Parquet I/O  |      | Plotly theme      |
            | Filter engine   |      | (Warm Prof Light) |
-           +-------+--------+      +------------------+
+           | Dataset registry|      +------------------+
+           +-------+--------+
                    |
           S3 API (boto3)
                    |
@@ -51,7 +53,7 @@ Runtime: Python 3.9+ / Plotly Dash 2.14+
     +------------------+     +-------------------+
     | backend/etl/     |     | backend/scripts/  |
     | BaseETL          |---->| load_domo.py      |
-    | CsvETL           |     | load_cursor.py    |
+    | CsvETL           |     | load_csv.py       |
     | DomoApiETL       |     | clear_dataset.py  |
     | ApiETL (stub)    |     +-------------------+
     | RdsETL (stub)    |
@@ -71,14 +73,14 @@ Runtime: Python 3.9+ / Plotly Dash 2.14+
 |-------|-----------|---------|--------|
 | Entry | `app.py` | Dash app init, callback registration | Implemented |
 | Auth | `src/auth/` | Flask-Login, form auth provider | Implemented |
-| Pages | `src/pages/` | Dashboard pages (3 pages, 1 modularized) | Implemented |
+| Pages | `src/pages/` | Dashboard pages (3 pages, 2 modularized) | Implemented |
 | Components | `src/components/` | Sidebar, filters, KPI cards | Implemented |
 | Charts | `src/charts/` | Plotly templates, Warm Professional Light theme | Implemented |
-| Data | `src/data/` | S3 client, Parquet reader, filter engine | Implemented |
+| Data | `src/data/` | S3 client, Parquet reader, filter engine, dataset registry | Implemented |
 | Core | `src/core/` | Caching, structured logging | Implemented |
 | ETL | `backend/etl/` | Data pipelines (CSV, DOMO impl; API/RDS/S3 stub) | Partial |
 | Scripts | `backend/scripts/` | CLI tools for ETL execution | Implemented |
-| Config | `backend/config/` | DOMO dataset YAML definitions | Implemented |
+| Config | `backend/config/` | DOMO/CSV dataset YAML definitions | Implemented |
 | Assets | `assets/` | CSS (reset, typography, layout, components, animations, charts, login) | Implemented |
 
 ## Page Modularity
@@ -86,17 +88,16 @@ Runtime: Python 3.9+ / Plotly Dash 2.14+
 | Page | Path | Structure | Type |
 |------|------|-----------|------|
 | Home | `/` | `dashboard_home.py` | Single file |
-| Cursor Usage | `/cursor-usage` | `cursor_usage.py` | Single file |
+| Cursor Usage | `/cursor-usage` | `cursor_usage/` package | Modularized |
 | APAC DOT Due Date | `/apac-dot-due-date` | `apac_dot_due_date/` package | Modularized |
 
-The APAC DOT Due Date page uses a modularized package structure:
-- `__init__.py` -- page registration + layout() entry
-- `_constants.py` -- DATASET_ID, COLUMN_MAP, BREAKDOWN_MAP
-- `_data_loader.py` -- load_filter_options(), load_and_filter_data()
-- `_filters.py` -- build_filter_layout()
-- `_layout.py` -- build_layout()
-- `_callbacks.py` -- update_all_charts() @callback
-- `charts/_ch00_reference_table.py` -- pivot table builder (pure function)
+The modularized pages use the same pattern:
+- `__init__.py` for page registration
+- `_constants.py` for ID and column mappings
+- `_data_loader.py` for data access and filtering
+- `_layout.py` for layout building
+- `_callbacks.py` for Dash callbacks
+- `data_sources.yml` for chart_id -> dataset_id mapping
 
 ## Dependency Flow
 
@@ -109,6 +110,12 @@ app.py
   +-> src.core.cache               (init_cache)
   +-> src.layout                   (create_layout)
   +-> src.data.config              (settings)
+
+pages/*
+  +-> src.data.data_source_registry (chart_id -> dataset_id)
+  +-> src.core.cache                (get_cached_dataset)
+  +-> src.data.parquet_reader       (read_dataset)
+  +-> src.data.filter_engine        (apply_filters)
 ```
 
 ## Technology Stack

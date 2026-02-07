@@ -1,6 +1,7 @@
 # Frontend Codemap
 
 Last Updated: 2026-02-07
+Freshness: 2026-02-07T03:05:43Z
 Entry Point: `app.py`
 Framework: Plotly Dash 2.14+ / Dash Bootstrap Components 1.5+
 
@@ -30,8 +31,8 @@ Authenticated Layout:
   |
   +-- page_container (Dash Pages API)
         +-- dashboard_home.py              path=/                  order=0
-        +-- cursor_usage.py                path=/cursor-usage      order=1
-        +-- apac_dot_due_date/__init__.py   path=/apac-dot-due-date order=2
+        +-- cursor_usage/__init__.py       path=/cursor-usage      order=1
+        +-- apac_dot_due_date/__init__.py  path=/apac-dot-due-date order=2
 ```
 
 ## Module Dependency Graph
@@ -102,15 +103,18 @@ Layout:  H1 + dashboard card grid (links to other pages)
 Callbacks: None (static layout from page_registry)
 ```
 
-### cursor_usage.py (path=/cursor-usage, order=1)
+### cursor_usage/ (path=/cursor-usage, order=1) -- Modularized Package
 
 ```
-Imports: ParquetReader, get_cached_dataset, FilterSet,
-         CategoryFilter, DateRangeFilter, apply_filters,
-         create_date_range_filter, create_category_filter,
-         create_kpi_card, render_line_chart, render_bar_chart,
-         render_pie_chart, dash_table
-Dataset: "cursor-usage"
+Structure:
+  __init__.py          -> Dash register_page + layout() entry
+  _constants.py        -> DASHBOARD_ID, DATASET_ID, ID_PREFIX, COLUMN_MAP, chart IDs
+  data_sources.yml     -> chart_id -> dataset_id mapping
+  _data_loader.py      -> load_filter_options(), load_and_filter_data()
+  _layout.py           -> build_layout()
+  _callbacks.py        -> update_dashboard() @callback
+
+Dataset: "cursor-usage" (via data_sources.yml)
 Filters: Date range, Model (category)
 Outputs: 3 KPI cards + 3 charts + DataTable
 ```
@@ -118,8 +122,10 @@ Outputs: 3 KPI cards + 3 charts + DataTable
 Callback flow:
 ```
 date-filter / model-filter
-  -> get_cached_dataset("cursor-usage")
-  -> apply_filters(df, FilterSet)
+  -> data_source_registry.get_dataset_id(DASHBOARD_ID, CHART_ID_COST_TREND)
+  -> _data_loader.load_and_filter_data()
+     -> get_cached_dataset("cursor-usage")
+     -> apply_filters(df, FilterSet)
   -> KPIs: Total Cost, Total Tokens, Request Count
   -> Charts: Daily Cost Trend (line), Token Efficiency (bar), Model Distribution (pie)
   -> DataTable: Top 100 rows
@@ -130,7 +136,8 @@ date-filter / model-filter
 ```
 Structure:
   __init__.py          -> Dash register_page + layout() entry
-  _constants.py        -> DATASET_ID, ID_PREFIX, COLUMN_MAP, BREAKDOWN_MAP
+  _constants.py        -> DASHBOARD_ID, DATASET_ID, ID_PREFIX, COLUMN_MAP, BREAKDOWN_MAP, chart IDs
+  data_sources.yml     -> chart_id -> dataset_id mapping
   _data_loader.py      -> load_filter_options(), load_and_filter_data()
   _filters.py          -> build_filter_layout() -> 5 dbc.Row
   _layout.py           -> build_layout() -> html.Div
@@ -139,7 +146,7 @@ Structure:
     __init__.py        -> Sub-package docstring
     _ch00_reference_table.py -> build(df, breakdown, mode) -> (title, component)
 
-Dataset: "apac-dot-due-date"
+Dataset: "apac-dot-due-date" (via data_sources.yml)
 Filters: Num/% toggle, Breakdown tabs (Area/Category/Vendor),
          Month, PRC, Area, Category, Vendor, AMP VS AV, Order Type
 Outputs: Pivot table (DataTable) with GRAND TOTAL + AVG
@@ -149,7 +156,7 @@ Callback flow:
 ```
 num-percent-toggle / breakdown-tabs / filter-month / prc-filter /
 area-filter / category-filter / vendor-filter / amp-av-filter / order-type-filter
-  -> _callbacks.update_all_charts()
+  -> data_source_registry.get_dataset_id(DASHBOARD_ID, CHART_ID_REFERENCE_TABLE)
   -> _data_loader.load_and_filter_data()
      -> get_cached_dataset("apac-dot-due-date")
      -> PRC custom filter (job name contains "PRC")
@@ -164,7 +171,7 @@ area-filter / category-filter / vendor-filter / amp-av-filter / order-type-filte
 Module naming conventions:
 - Private modules: `_` prefix (not part of public API)
 - Chart modules: `_ch{NN}_{name}.py` (numbered for ordering)
-- Component IDs: `apac-dot-` prefix (namespace isolation)
+- Component IDs: page-specific prefix (namespace isolation)
 
 ## Authentication Flow
 
@@ -263,7 +270,10 @@ tests/unit/pages/apac_dot_due_date/
   test_callbacks.py
   charts/
     test_ch00_reference_table.py
-tests/unit/test_layout.py
+tests/unit/pages/cursor_usage/
+  test_constants.py
+  test_data_loader.py
+  test_callbacks.py
 ```
 
 ## Related Codemaps

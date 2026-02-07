@@ -1,6 +1,7 @@
 # Data Layer Codemap
 
 Last Updated: 2026-02-07
+Freshness: 2026-02-07T03:05:43Z
 Directory: `src/data/`, `src/core/`, `src/exceptions.py`
 
 ## Module Dependency Graph
@@ -42,6 +43,15 @@ src/data/filter_engine.py
   Exports: CategoryFilter, DateRangeFilter, FilterSet (frozen dataclasses),
            apply_filters()
 
+src/data/data_source_registry.py
+  Imports: yaml, pathlib.Path, functools.lru_cache
+  Exports: load_dashboard_config(), get_dataset_id()
+
+src/data/data_loader.py
+  Imports: pandas, core.cache.get_cached_dataset,
+           parquet_reader.ParquetReader, data_source_registry.get_dataset_id
+  Exports: load_dataset_for_chart()
+
 src/core/cache.py
   Imports: flask_caching, pandas, parquet_reader.ParquetReader
   Exports: cache (Cache instance), init_cache(), get_cached_dataset()
@@ -74,6 +84,25 @@ class Settings(BaseSettings):
     domo_client_secret: Optional[str]
 
 settings = Settings()  # Global singleton
+```
+
+### Dataset Registry (data_source_registry.py)
+
+```python
+def load_dashboard_config(dashboard_id: str) -> dict
+    # Reads src/pages/{dashboard_id}/data_sources.yml
+    # Validates "charts" mapping
+
+def get_dataset_id(dashboard_id: str, chart_id: str) -> Optional[str]
+    # Returns dataset_id for chart_id, or None if not found
+```
+
+### Common Loader (data_loader.py)
+
+```python
+def load_dataset_for_chart(reader: ParquetReader, dashboard_id: str, chart_id: str) -> pd.DataFrame
+    # Resolves dataset_id via registry
+    # Loads dataset via get_cached_dataset
 ```
 
 ### ParquetReader (parquet_reader.py)
@@ -139,12 +168,6 @@ def apply_types(df, schema) -> pd.DataFrame
     # Applies inferred types to DataFrame copy (immutable operation)
 ```
 
-Date formats recognized:
-```
-Date:     %Y-%m-%d, %Y/%m/%d, %Y年%m月%d日
-Datetime: %Y-%m-%d %H:%M:%S, %Y-%m-%dT%H:%M:%S, %Y/%m/%d %H:%M:%S
-```
-
 ### Filter Engine (filter_engine.py)
 
 ```python
@@ -192,20 +215,6 @@ class DatasetSummarizer:
 
     generate_summary(dataset_id) -> dict
         # Lighter version: schema + statistics + counts (max 1000 rows)
-        # Numeric: min, max, mean, std
-        # String: unique_count, top_values (top 10)
-        # Datetime: min, max (ISO strings)
-```
-
-### ColumnSchema (models.py)
-
-```python
-@dataclass
-class ColumnSchema:
-    name: str
-    data_type: str
-    nullable: bool = False
-    description: Optional[str] = None
 ```
 
 ### Cache (core/cache.py)
@@ -233,6 +242,8 @@ class DatasetFileNotFoundError(RuntimeError):
 
 ```
 Page callback
+  |
+  data_source_registry.get_dataset_id(dashboard_id, chart_id)
   |
   get_cached_dataset(reader, dataset_id)
   |
@@ -297,9 +308,13 @@ tests/unit/data/
   test_filter_engine.py          # Category/date filtering
   test_parquet_reader.py         # Single file reading (moto)
   test_parquet_reader_partition.py # Partitioned reading (moto)
+  test_data_source_registry.py   # Dashboard config registry
+  test_common_data_loader.py     # Registry-backed loader
+
 tests/unit/core/
   test_cache.py                  # Cache hit/miss behavior
   test_logging.py                # structlog configuration
+
 tests/unit/
   test_exceptions.py             # DatasetFileNotFoundError
 ```

@@ -26,6 +26,25 @@ class TestDatasetId:
         assert isinstance(DATASET_ID, str)
 
 
+class TestDashboardId:
+    """DASHBOARD_ID must be set for config lookup."""
+
+    def test_dashboard_id_exists(self):
+        from src.pages.cursor_usage._constants import DASHBOARD_ID
+
+        assert DASHBOARD_ID is not None
+
+    def test_dashboard_id_value(self):
+        from src.pages.cursor_usage._constants import DASHBOARD_ID
+
+        assert DASHBOARD_ID == "cursor_usage"
+
+    def test_dashboard_id_is_string(self):
+        from src.pages.cursor_usage._constants import DASHBOARD_ID
+
+        assert isinstance(DASHBOARD_ID, str)
+
+
 class TestIdPrefix:
     """ID_PREFIX must be set for component ID namespacing to avoid collisions."""
 
@@ -111,3 +130,29 @@ class TestColumnMap:
 
         for key in COLUMN_MAP.keys():
             assert isinstance(key, str), f"COLUMN_MAP key is not a string: {key}"
+
+
+class TestChartIds:
+    """Chart ID constants must be defined for config mapping."""
+
+    def test_chart_ids_exist(self):
+        from src.pages.cursor_usage import _constants as const
+
+        assert const.CHART_ID_KPI_TOTAL_COST is not None
+        assert const.CHART_ID_KPI_TOTAL_TOKENS is not None
+        assert const.CHART_ID_KPI_REQUEST_COUNT is not None
+        assert const.CHART_ID_COST_TREND is not None
+        assert const.CHART_ID_TOKEN_EFFICIENCY is not None
+        assert const.CHART_ID_MODEL_DISTRIBUTION is not None
+        assert const.CHART_ID_DATA_TABLE is not None
+
+    def test_chart_ids_values(self):
+        from src.pages.cursor_usage import _constants as const
+
+        assert const.CHART_ID_KPI_TOTAL_COST == "cu-kpi-total-cost"
+        assert const.CHART_ID_KPI_TOTAL_TOKENS == "cu-kpi-total-tokens"
+        assert const.CHART_ID_KPI_REQUEST_COUNT == "cu-kpi-request-count"
+        assert const.CHART_ID_COST_TREND == "cu-chart-cost-trend"
+        assert const.CHART_ID_TOKEN_EFFICIENCY == "cu-chart-token-efficiency"
+        assert const.CHART_ID_MODEL_DISTRIBUTION == "cu-chart-model-distribution"
+        assert const.CHART_ID_DATA_TABLE == "cu-data-table"

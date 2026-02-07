@@ -1,0 +1,8 @@
+charts:
+  cu-kpi-total-cost: cursor-usage
+  cu-kpi-total-tokens: cursor-usage
+  cu-kpi-request-count: cursor-usage
+  cu-chart-cost-trend: cursor-usage
+  cu-chart-token-efficiency: cursor-usage
+  cu-chart-model-distribution: cursor-usage
+  cu-data-table: cursor-usage
