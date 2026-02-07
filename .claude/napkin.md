@@ -7,7 +7,7 @@
 | 2026-02-07 | self | Repeatedly used exec_command to run apply_patch despite warning | Always use apply_patch tool for patches |
 
 ## User Preferences
-- (accumulate here as you learn them)
+- Prefer YAML only for look/labels; keep calculation logic in Python templates.
 
 ## Patterns That Work
 - 2026-02-07: With permissions set to full access and Docker running, MinIO health check and ParquetReader validation succeeded locally.
