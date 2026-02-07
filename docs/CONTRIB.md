@@ -182,23 +182,35 @@ work_BI_PythonAll/
   pyproject.toml                 # pytest/ruff/mypy設定
   CLAUDE.md                      # プロジェクト開発メモ
   src/
-    data/
+    auth/                        # 認証レイヤー（Flask-Login）
+    charts/                      # チャートテンプレート、テーマ
+    components/                  # 再利用可能UIコンポーネント（カード、フィルタ、サイドバー）
+    core/                        # インフラ（キャッシュ、ログ）
+    data/                        # データアクセスレイヤー
       config.py                  # Pydantic Settings（環境変数管理）
       data_loader.py             # 共通データローダー
       data_source_registry.py    # chart_id -> dataset_id レジストリ
       parquet_reader.py          # Parquetファイル読み込み
       filter_engine.py           # フィルタロジック
-    pages/
+    pages/                       # ダッシュボードページ（Tier 1/2）
       cursor_usage/
         data_sources.yml         # Cursor Usageのデータソース設定
       apac_dot_due_date/
         data_sources.yml         # APAC DOT Due Dateのデータソース設定
+    layout.py                    # メインレイアウト（認証対応）
+    exceptions.py                # カスタム例外クラス
+  backend/
+    config/                      # ETL設定（YAML）
+    etl/                         # ETLパイプライン（BaseETL, CsvETL, DomoApiETL）
+    scripts/                     # ETL実行スクリプト
   docs/
     CONTRIB.md
     RUNBOOK.md
     architecture.md
     tech-spec.md
 ```
+
+詳細なディレクトリ構造は [architecture.md](architecture.md) を参照。
 
 ---
 

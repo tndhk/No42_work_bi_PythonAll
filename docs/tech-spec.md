@@ -118,7 +118,7 @@ class CsvImportOptions:
     encoding: Optional[str] = None  # utf-8, shift_jis, cp932
     delimiter: str = ","
     has_header: bool = True
-    null_values: list[str] = ["", "NULL", "null", "NA", "N/A"]
+    null_values: list[str] = field(default_factory=list)  # デフォルトは空リスト（pandasのデフォルトnull解釈を使用）
 ```
 
 エンコーディング検出:
@@ -189,25 +189,26 @@ partitions_to_read = [
 
 ### 4.1 利用可能なチャートタイプ
 
-| タイプ | 名前 | 説明 | パラメータ |
-|--------|------|------|-----------|
-| summary-number | Summary Number | 大きな数字表示 | `value_column`, `agg_func` (sum/mean/count/max/min) |
-| bar | Bar Chart | 棒グラフ | `x_column`, `y_column` |
-| line | Line Chart | 折れ線グラフ | `x_column`, `y_column` |
-| pie | Pie Chart | 円グラフ | `names_column`, `values_column` |
-| table | Table | テーブル表示 | （なし） |
-| pivot | Pivot Table | ピボットテーブル | `index_column`, `columns_column` (optional), `values_column`, `agg_func` |
+`src/charts/templates.py` で提供される汎用チャートテンプレート関数:
+
+| タイプ | 関数名 | 説明 | パラメータ |
+|--------|--------|------|-----------|
+| bar | `render_bar_chart()` | 棒グラフ | `x_column`, `y_column` |
+| line | `render_line_chart()` | 折れ線グラフ | `x_column`, `y_column` |
+| pie | `render_pie_chart()` | 円グラフ | `names_column`, `values_column` |
+
+その他の表示形式は専用コンポーネントを使用:
+- **Summary Number (KPIカード)**: `src/components/cards.py` の `create_kpi_card()` を使用
+- **Table**: `dash.dash_table.DataTable` を直接使用
+- **Pivot Table**: ページ固有の実装（例: `src/pages/apac_dot_due_date/charts/_ch00_reference_table.py`）
 
 ### 4.2 チャートテンプレートの使い方
 
 ```python
-from src.charts.templates import get_chart_template
+from src.charts.templates import render_bar_chart, render_line_chart, render_pie_chart
 
-# チャートタイプを取得
-template = get_chart_template("bar")
-
-# データセットとパラメータを指定してレンダリング
-figure = template["render"](
+# 棒グラフの例
+figure = render_bar_chart(
     dataset=df,
     filters=None,
     params={"x_column": "category", "y_column": "amount"}
@@ -216,6 +217,20 @@ figure = template["render"](
 # Dashコンポーネントに配置
 dcc.Graph(figure=figure)
 ```
+
+すべてのチャート関数は以下のシグネチャに従う:
+
+```python
+def render_*_chart(
+    dataset: pd.DataFrame,
+    filters: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
+) -> go.Figure
+```
+
+- `dataset`: 可視化するDataFrame
+- `filters`: フィルタパラメータ（現在は未使用、将来拡張用）
+- `params`: チャート固有のパラメータ（列名など）
 
 ---
 
@@ -280,7 +295,8 @@ flowchart TB
 ### 5.3 キャッシュ仕様
 
 - TTL キャッシュ: メモリ上にデータを保持し、一定時間（例: 5分）は再利用
-- キャッシュキー: `dataset_id` + フィルタパラメータ
+- キャッシュキー: `dataset:{dataset_id}` （フィルタパラメータは含まない）
+- フィルタ適用: キャッシュされた全量DataFrameに対してインメモリで適用される
 - キャッシュ切れ時に S3 から再読み込み
 
 ### 5.4 データセット一覧取得
@@ -474,8 +490,11 @@ allow_untyped_defs = true
 
 ```toml
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore::Warning:boto3.compat",
+    "ignore::DeprecationWarning:dash.development.base_component",
+]
 ```
 
 ---

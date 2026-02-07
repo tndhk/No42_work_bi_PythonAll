@@ -156,10 +156,10 @@ Theme: Warm Professional Light (Noto Sans JP / Inter)
 | `tests/unit/auth/` | `test_session_auth.py` | Auth flow |
 | `tests/unit/charts/` | `test_plotly_theme.py`, `test_templates.py` | Theme + chart builders |
 | `tests/unit/components/` | `test_cards.py`, `test_filters.py`, `test_sidebar.py` | UI components |
-| `tests/unit/pages/apac_dot_due_date/` | 6 test files (constants, data_loader, layout, filters, callbacks, charts) | Full page coverage |
-| `tests/unit/pages/cursor_usage/` | 3 test files (constants, data_loader, callbacks) | Core logic |
+| `tests/unit/pages/apac_dot_due_date/` | 6 test files (constants, data_loader, data_sources, filters, callbacks, charts/_ch00_reference_table) | Full page coverage |
+| `tests/unit/pages/cursor_usage/` | 4 test files (constants, data_loader, data_sources, callbacks) | Core logic |
 | `tests/unit/pages/` | `test_dashboard_home.py`, `test_apac_dot_due_date.py` | Page registration |
-| `tests/unit/` | `test_layout.py` | Main layout |
+| `tests/unit/` | `test_layout.py`, `test_exceptions.py` | Main layout, exceptions |
 | `tests/helpers/` | `dash_test_utils.py`, `test_dash_test_utils.py` | Shared test utilities |
 
 Test helper exports (`tests/helpers/dash_test_utils.py`):
