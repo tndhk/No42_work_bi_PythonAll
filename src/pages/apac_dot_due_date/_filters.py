@@ -19,6 +19,9 @@ from ._constants import (
     FILTER_ID_ORDER_TYPE,
 )
 
+# Expected number of months when all data is available (used for placeholder text)
+EXPECTED_MONTH_COUNT = 26
+
 
 def build_filter_layout(filter_options: dict) -> list[dbc.Row]:
     """Build the filter section of the APAC DOT Due Date layout.
@@ -93,7 +96,7 @@ def build_filter_layout(filter_options: dict) -> list[dbc.Row]:
                         multi=True,
                         placeholder=(
                             f"Select all ({len(months)})"
-                            if len(months) == 26
+                            if len(months) == EXPECTED_MONTH_COUNT
                             else "Select months..."
                         ),
                     ),

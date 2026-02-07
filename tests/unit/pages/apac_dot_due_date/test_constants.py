@@ -50,126 +50,93 @@ class TestIdPrefix:
         assert ID_PREFIX.endswith("-")
 
 
-class TestColumnMap:
-    """COLUMN_MAP maps filter component IDs to DataFrame column names."""
+class TestDatasets:
+    """DATASETS dict contains DatasetConfig instances for each dataset."""
 
-    def test_column_map_exists(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
+    def test_datasets_exists(self):
+        from src.pages.apac_dot_due_date._constants import DATASETS
 
-        assert COLUMN_MAP is not None
+        assert DATASETS is not None
 
-    def test_column_map_is_dict(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
+    def test_datasets_is_dict(self):
+        from src.pages.apac_dot_due_date._constants import DATASETS
 
-        assert isinstance(COLUMN_MAP, dict)
+        assert isinstance(DATASETS, dict)
 
-    def test_column_map_has_all_expected_keys(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
+    def test_datasets_has_reference_and_change_issue(self):
+        from src.pages.apac_dot_due_date._constants import DATASETS
 
+        assert "reference" in DATASETS
+        assert "change_issue" in DATASETS
+
+    def test_reference_dataset_config(self):
+        from src.pages.apac_dot_due_date._constants import DATASETS, CHART_ID_REFERENCE_TABLE
+
+        ref = DATASETS["reference"]
+        assert ref.dataset_id == "apac-dot-due-date"
+        assert ref.chart_id == CHART_ID_REFERENCE_TABLE
+        assert ref.table_spec_key == "ch00_reference_table"
+        assert "order_type" in ref.skip_filters
+
+    def test_change_issue_dataset_config(self):
+        from src.pages.apac_dot_due_date._constants import DATASETS, CHART_ID_CHANGE_ISSUE_TABLE
+
+        change = DATASETS["change_issue"]
+        assert change.dataset_id == "apac-dot-ddd-change-issue-sql"
+        assert change.chart_id == CHART_ID_CHANGE_ISSUE_TABLE
+        assert change.table_spec_key == "ch01_change_issue_table"
+        assert "amp_av" in change.skip_filters
+
+    def test_reference_column_map_has_all_keys(self):
+        from src.pages.apac_dot_due_date._constants import DATASETS
+
+        ref = DATASETS["reference"]
         expected_keys = {
-            "month",
-            "area",
-            "category",
-            "vendor",
-            "amp_av",
-            "order_type",
-            "job_name",
-            "work_order_id",
+            "month", "area", "category", "vendor",
+            "amp_av", "order_type", "job_name", "work_order_id",
         }
-        assert set(COLUMN_MAP.keys()) == expected_keys
+        assert set(ref.column_map.keys()) == expected_keys
 
-    def test_column_map_month(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
+    def test_change_issue_column_map_has_all_keys(self):
+        from src.pages.apac_dot_due_date._constants import DATASETS
 
-        assert COLUMN_MAP["month"] == "Delivery Completed Month"
+        change = DATASETS["change_issue"]
+        expected_keys = {
+            "month", "area", "category", "vendor",
+            "order_type", "job_name", "work_order_id",
+        }
+        assert set(change.column_map.keys()) == expected_keys
+        assert "amp_av" not in change.column_map
 
-    def test_column_map_area(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
+    def test_reference_column_map_values(self):
+        from src.pages.apac_dot_due_date._constants import DATASETS
 
-        assert COLUMN_MAP["area"] == "business area"
+        ref = DATASETS["reference"]
+        assert ref.column_map["month"] == "Delivery Completed Month"
+        assert ref.column_map["area"] == "business area"
+        assert ref.column_map["category"] == "Metric Workstream"
 
-    def test_column_map_category(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
+    def test_change_issue_column_map_values(self):
+        from src.pages.apac_dot_due_date._constants import DATASETS
 
-        assert COLUMN_MAP["category"] == "Metric Workstream"
+        change = DATASETS["change_issue"]
+        assert change.column_map["month"] == "edit month"
+        assert change.column_map["area"] == "business area"
+        assert change.column_map["category"] == "metric workstream"
 
-    def test_column_map_vendor(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
+    def test_breakdown_maps_are_subsets(self):
+        from src.pages.apac_dot_due_date._constants import DATASETS
 
-        assert COLUMN_MAP["vendor"] == "Vendor: Account Name"
+        ref = DATASETS["reference"]
+        change = DATASETS["change_issue"]
 
-    def test_column_map_amp_av(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
+        # Breakdown map keys should be subset of column map keys
+        assert set(ref.breakdown_map.keys()).issubset(set(ref.column_map.keys()))
+        assert set(change.breakdown_map.keys()).issubset(set(change.column_map.keys()))
 
-        assert COLUMN_MAP["amp_av"] == "AMP VS AV Scope"
-
-    def test_column_map_order_type(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
-
-        assert COLUMN_MAP["order_type"] == "order tags"
-
-    def test_column_map_job_name(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
-
-        assert COLUMN_MAP["job_name"] == "job name"
-
-    def test_column_map_work_order_id(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
-
-        assert COLUMN_MAP["work_order_id"] == "work order id"
-
-    def test_column_map_values_are_all_strings(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
-
-        for key, value in COLUMN_MAP.items():
-            assert isinstance(value, str), f"COLUMN_MAP['{key}'] is not a string: {value}"
-
-    def test_column_map_keys_are_all_strings(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP
-
-        for key in COLUMN_MAP.keys():
-            assert isinstance(key, str), f"COLUMN_MAP key is not a string: {key}"
-
-
-class TestBreakdownMap:
-    """BREAKDOWN_MAP maps tab IDs to DataFrame column names for pivot breakdown."""
-
-    def test_breakdown_map_exists(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP
-
-        assert BREAKDOWN_MAP is not None
-
-    def test_breakdown_map_is_dict(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP
-
-        assert isinstance(BREAKDOWN_MAP, dict)
-
-    def test_breakdown_map_has_all_expected_keys(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP
-
-        expected_keys = {"area", "category", "vendor"}
-        assert set(BREAKDOWN_MAP.keys()) == expected_keys
-
-    def test_breakdown_map_area(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP
-
-        assert BREAKDOWN_MAP["area"] == "business area"
-
-    def test_breakdown_map_category(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP
-
-        assert BREAKDOWN_MAP["category"] == "Metric Workstream"
-
-    def test_breakdown_map_vendor(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP
-
-        assert BREAKDOWN_MAP["vendor"] == "Vendor: Account Name"
-
-    def test_breakdown_map_values_are_all_strings(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP
-
-        for key, value in BREAKDOWN_MAP.items():
-            assert isinstance(value, str), f"BREAKDOWN_MAP['{key}'] is not a string: {value}"
+        # Breakdown map values should be in column map values
+        assert all(v in ref.column_map.values() for v in ref.breakdown_map.values())
+        assert all(v in change.column_map.values() for v in change.breakdown_map.values())
 
 
 class TestComponentIds:
@@ -379,157 +346,6 @@ class TestDatasetId2:
         assert isinstance(DATASET_ID_2, str)
 
 
-class TestColumnMap2:
-    """COLUMN_MAP_2 maps filter component IDs to DataFrame column names for change-issue data."""
-
-    def test_column_map_2_exists(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert COLUMN_MAP_2 is not None
-
-    def test_column_map_2_is_dict(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert isinstance(COLUMN_MAP_2, dict)
-
-    def test_column_map_2_has_7_keys(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert len(COLUMN_MAP_2) == 7
-
-    def test_column_map_2_has_all_expected_keys(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        expected_keys = {
-            "month",
-            "area",
-            "category",
-            "vendor",
-            "order_type",
-            "job_name",
-            "work_order_id",
-        }
-        assert set(COLUMN_MAP_2.keys()) == expected_keys
-
-    def test_column_map_2_does_not_contain_amp_av(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert "amp_av" not in COLUMN_MAP_2
-
-    def test_column_map_2_month(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert COLUMN_MAP_2["month"] == "edit month"
-
-    def test_column_map_2_area(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert COLUMN_MAP_2["area"] == "business area"
-
-    def test_column_map_2_category(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert COLUMN_MAP_2["category"] == "metric workstream"
-
-    def test_column_map_2_vendor(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert COLUMN_MAP_2["vendor"] == "vendor: account name"
-
-    def test_column_map_2_order_type(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert COLUMN_MAP_2["order_type"] == "order types"
-
-    def test_column_map_2_job_name(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert COLUMN_MAP_2["job_name"] == "job name"
-
-    def test_column_map_2_work_order_id(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        assert COLUMN_MAP_2["work_order_id"] == "work order: work order id"
-
-    def test_column_map_2_values_are_all_strings(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        for key, value in COLUMN_MAP_2.items():
-            assert isinstance(value, str), (
-                f"COLUMN_MAP_2['{key}'] is not a string: {value}"
-            )
-
-    def test_column_map_2_keys_are_all_strings(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2
-
-        for key in COLUMN_MAP_2.keys():
-            assert isinstance(key, str), f"COLUMN_MAP_2 key is not a string: {key}"
-
-
-class TestBreakdownMap2:
-    """BREAKDOWN_MAP_2 maps tab IDs to DataFrame column names for change-issue pivot breakdown."""
-
-    def test_breakdown_map_2_exists(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP_2
-
-        assert BREAKDOWN_MAP_2 is not None
-
-    def test_breakdown_map_2_is_dict(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP_2
-
-        assert isinstance(BREAKDOWN_MAP_2, dict)
-
-    def test_breakdown_map_2_has_3_keys(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP_2
-
-        assert len(BREAKDOWN_MAP_2) == 3
-
-    def test_breakdown_map_2_has_all_expected_keys(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP_2
-
-        expected_keys = {"area", "category", "vendor"}
-        assert set(BREAKDOWN_MAP_2.keys()) == expected_keys
-
-    def test_breakdown_map_2_area(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP_2
-
-        assert BREAKDOWN_MAP_2["area"] == "business area"
-
-    def test_breakdown_map_2_category(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP_2
-
-        assert BREAKDOWN_MAP_2["category"] == "metric workstream"
-
-    def test_breakdown_map_2_vendor(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP_2
-
-        assert BREAKDOWN_MAP_2["vendor"] == "vendor: account name"
-
-    def test_breakdown_map_2_values_are_all_strings(self):
-        from src.pages.apac_dot_due_date._constants import BREAKDOWN_MAP_2
-
-        for key, value in BREAKDOWN_MAP_2.items():
-            assert isinstance(value, str), (
-                f"BREAKDOWN_MAP_2['{key}'] is not a string: {value}"
-            )
-
-    def test_breakdown_map_2_is_subset_of_column_map_2_values(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2, BREAKDOWN_MAP_2
-
-        column_values = set(COLUMN_MAP_2.values())
-        for key, value in BREAKDOWN_MAP_2.items():
-            assert value in column_values, (
-                f"BREAKDOWN_MAP_2['{key}'] = '{value}' is not found in COLUMN_MAP_2 values"
-            )
-
-    def test_breakdown_map_2_keys_are_subset_of_column_map_2_keys(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP_2, BREAKDOWN_MAP_2
-
-        column_keys = set(COLUMN_MAP_2.keys())
-        for key in BREAKDOWN_MAP_2.keys():
-            assert key in column_keys, (
-                f"BREAKDOWN_MAP_2 key '{key}' is not found in COLUMN_MAP_2 keys"
-            )
 
 
 class TestChartId01:
@@ -577,24 +393,3 @@ class TestChartId01:
         assert isinstance(CHART_ID_CHANGE_ISSUE_TABLE_TITLE, str)
 
 
-class TestBreakdownMapIsSubsetOfColumnMap:
-    """BREAKDOWN_MAP values should be a subset of COLUMN_MAP values,
-    ensuring consistency between filter columns and breakdown columns."""
-
-    def test_breakdown_values_are_subset_of_column_values(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP, BREAKDOWN_MAP
-
-        column_values = set(COLUMN_MAP.values())
-        for key, value in BREAKDOWN_MAP.items():
-            assert value in column_values, (
-                f"BREAKDOWN_MAP['{key}'] = '{value}' is not found in COLUMN_MAP values"
-            )
-
-    def test_breakdown_keys_are_subset_of_column_keys(self):
-        from src.pages.apac_dot_due_date._constants import COLUMN_MAP, BREAKDOWN_MAP
-
-        column_keys = set(COLUMN_MAP.keys())
-        for key in BREAKDOWN_MAP.keys():
-            assert key in column_keys, (
-                f"BREAKDOWN_MAP key '{key}' is not found in COLUMN_MAP keys"
-            )

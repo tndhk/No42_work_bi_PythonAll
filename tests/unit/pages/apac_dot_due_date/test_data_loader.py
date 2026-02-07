@@ -272,12 +272,14 @@ class TestLoadAndFilterDataBasic:
     @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
     def test_returns_dataframe(self, mock_cache):
         from src.pages.apac_dot_due_date._data_loader import load_and_filter_data
+        from src.pages.apac_dot_due_date._constants import DATASETS
 
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
+        column_map = DATASETS["reference"].column_map
 
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="all",
             area_values=None,
@@ -291,12 +293,14 @@ class TestLoadAndFilterDataBasic:
     @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
     def test_no_filters_returns_all_rows(self, mock_cache):
         from src.pages.apac_dot_due_date._data_loader import load_and_filter_data
+        from src.pages.apac_dot_due_date._constants import DATASETS
 
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
+        column_map = DATASETS["reference"].column_map
 
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="all",
             area_values=None,
@@ -314,12 +318,14 @@ class TestLoadAndFilterDataPrcFilter:
     @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
     def test_prc_only_filters_to_prc_rows(self, mock_cache):
         from src.pages.apac_dot_due_date._data_loader import load_and_filter_data
+        from src.pages.apac_dot_due_date._constants import DATASETS
 
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
+        column_map = DATASETS["reference"].column_map
 
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="prc_only",
             area_values=None,
@@ -338,8 +344,9 @@ class TestLoadAndFilterDataPrcFilter:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="prc_not_included",
             area_values=None,
@@ -358,8 +365,9 @@ class TestLoadAndFilterDataPrcFilter:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="all",
             area_values=None,
@@ -378,8 +386,9 @@ class TestLoadAndFilterDataPrcFilter:
         mock_cache.return_value = df
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="prc_only",
             area_values=None,
@@ -401,8 +410,9 @@ class TestLoadAndFilterDataCategoryFilters:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=["2024-01"],
             prc_filter_value="all",
             area_values=None,
@@ -421,8 +431,9 @@ class TestLoadAndFilterDataCategoryFilters:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="all",
             area_values=["APAC"],
@@ -441,8 +452,9 @@ class TestLoadAndFilterDataCategoryFilters:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="all",
             area_values=None,
@@ -461,8 +473,9 @@ class TestLoadAndFilterDataCategoryFilters:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="all",
             area_values=None,
@@ -481,8 +494,9 @@ class TestLoadAndFilterDataCategoryFilters:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="all",
             area_values=None,
@@ -501,8 +515,9 @@ class TestLoadAndFilterDataCategoryFilters:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="all",
             area_values=None,
@@ -525,8 +540,9 @@ class TestLoadAndFilterDataCombinedFilters:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="prc_only",
             area_values=["APAC"],
@@ -547,8 +563,9 @@ class TestLoadAndFilterDataCombinedFilters:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=["2024-01"],
             prc_filter_value="all",
             area_values=None,
@@ -567,8 +584,9 @@ class TestLoadAndFilterDataCombinedFilters:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=["2024-03"],
             prc_filter_value="prc_only",
             area_values=["EMEA"],
@@ -592,8 +610,9 @@ class TestLoadAndFilterDataEdgeCases:
         mock_cache.return_value = _make_sample_df()
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=[],
             prc_filter_value="all",
             area_values=[],
@@ -615,8 +634,9 @@ class TestLoadAndFilterDataEdgeCases:
         mock_cache.return_value = df
         reader = MagicMock()
 
+        column_map = DATASETS["reference"].column_map
         result = load_and_filter_data(
-            reader, "apac-dot-due-date",
+            reader, "apac-dot-due-date", column_map,
             selected_months=None,
             prc_filter_value="prc_only",
             area_values=None,
@@ -634,7 +654,7 @@ class TestLoadAndFilterDataEdgeCases:
 # ---------------------------------------------------------------------------
 
 def _make_sample_df2() -> pd.DataFrame:
-    """Create a sample DataFrame mimicking the change-issue dataset (COLUMN_MAP_2)."""
+    """Create a sample DataFrame mimicking the change-issue dataset."""
     return pd.DataFrame({
         "edit month": ["2024-02", "2024-02", "2024-03", "2024-04"],
         "business area": ["APAC", "EMEA", "APAC", "EMEA"],
@@ -647,209 +667,74 @@ def _make_sample_df2() -> pd.DataFrame:
 
 
 # ===========================================================================
-# load_and_filter_data_2 tests
+# load_and_filter_data with change_issue column_map tests
 # ===========================================================================
 
-class TestLoadAndFilterData2Basic:
-    """load_and_filter_data_2 must return a DataFrame."""
+class TestLoadAndFilterDataWithChangeIssueColumnMap:
+    """load_and_filter_data works with change_issue column_map (no amp_av)."""
 
     @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
-    def test_returns_dataframe(self, mock_cache):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
+    def test_returns_dataframe_with_change_issue_map(self, mock_cache):
+        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data
 
         mock_cache.return_value = _make_sample_df2()
         reader = MagicMock()
+        column_map = DATASETS["change_issue"].column_map
 
-        result = load_and_filter_data_2(
-            reader, "apac-dot-ddd-change-issue-sql",
+        result = load_and_filter_data(
+            reader, "apac-dot-ddd-change-issue-sql", column_map,
             selected_months=None,
             prc_filter_value="all",
             area_values=None,
             category_values=None,
             vendor_values=None,
+            amp_av_values=None,
             order_type_values=None,
         )
         assert isinstance(result, pd.DataFrame)
-
-    @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
-    def test_no_filters_returns_all_rows(self, mock_cache):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
-
-        mock_cache.return_value = _make_sample_df2()
-        reader = MagicMock()
-
-        result = load_and_filter_data_2(
-            reader, "apac-dot-ddd-change-issue-sql",
-            selected_months=None,
-            prc_filter_value="all",
-            area_values=None,
-            category_values=None,
-            vendor_values=None,
-            order_type_values=None,
-        )
         assert len(result) == 4
 
-
-class TestLoadAndFilterData2NoAmpAv:
-    """load_and_filter_data_2 must NOT have an amp_av_values parameter."""
-
-    def test_no_amp_av_values_parameter(self):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
-
-        sig = inspect.signature(load_and_filter_data_2)
-        param_names = list(sig.parameters.keys())
-        assert "amp_av_values" not in param_names
-
-    def test_has_expected_parameters(self):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
-
-        sig = inspect.signature(load_and_filter_data_2)
-        param_names = list(sig.parameters.keys())
-        expected = [
-            "reader", "dataset_id", "selected_months",
-            "prc_filter_value", "area_values", "category_values",
-            "vendor_values", "order_type_values",
-        ]
-        assert param_names == expected
-
-
-class TestLoadAndFilterData2Filters:
-    """load_and_filter_data_2 filter logic using COLUMN_MAP_2 columns."""
-
     @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
-    def test_edit_month_filter(self, mock_cache):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
+    def test_edit_month_filter_with_change_issue_map(self, mock_cache):
+        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data
 
         mock_cache.return_value = _make_sample_df2()
         reader = MagicMock()
+        column_map = DATASETS["change_issue"].column_map
 
-        result = load_and_filter_data_2(
-            reader, "apac-dot-ddd-change-issue-sql",
+        result = load_and_filter_data(
+            reader, "apac-dot-ddd-change-issue-sql", column_map,
             selected_months=["2024-02"],
             prc_filter_value="all",
             area_values=None,
             category_values=None,
             vendor_values=None,
+            amp_av_values=None,
             order_type_values=None,
         )
         assert len(result) == 2
         assert all(result["edit month"] == "2024-02")
 
     @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
-    def test_order_types_filter(self, mock_cache):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
+    def test_order_types_filter_with_change_issue_map(self, mock_cache):
+        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data
 
         mock_cache.return_value = _make_sample_df2()
         reader = MagicMock()
+        column_map = DATASETS["change_issue"].column_map
 
-        result = load_and_filter_data_2(
-            reader, "apac-dot-ddd-change-issue-sql",
+        result = load_and_filter_data(
+            reader, "apac-dot-ddd-change-issue-sql", column_map,
             selected_months=None,
             prc_filter_value="all",
             area_values=None,
             category_values=None,
             vendor_values=None,
+            amp_av_values=None,
             order_type_values=["OrderA"],
         )
         assert len(result) == 2
         assert all(result["order types"] == "OrderA")
-
-    @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
-    def test_prc_only_filter(self, mock_cache):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
-
-        mock_cache.return_value = _make_sample_df2()
-        reader = MagicMock()
-
-        result = load_and_filter_data_2(
-            reader, "apac-dot-ddd-change-issue-sql",
-            selected_months=None,
-            prc_filter_value="prc_only",
-            area_values=None,
-            category_values=None,
-            vendor_values=None,
-            order_type_values=None,
-        )
-        # PRC-CI-1 and PRC-CI-4
-        assert len(result) == 2
-        assert all(result["job name"].str.contains("PRC", case=False, na=False))
-
-    @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
-    def test_prc_not_included_filter(self, mock_cache):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
-
-        mock_cache.return_value = _make_sample_df2()
-        reader = MagicMock()
-
-        result = load_and_filter_data_2(
-            reader, "apac-dot-ddd-change-issue-sql",
-            selected_months=None,
-            prc_filter_value="prc_not_included",
-            area_values=None,
-            category_values=None,
-            vendor_values=None,
-            order_type_values=None,
-        )
-        # Normal-CI-2 and Normal-CI-3
-        assert len(result) == 2
-        assert not any(result["job name"].str.contains("PRC", case=False, na=False))
-
-    @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
-    def test_area_filter(self, mock_cache):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
-
-        mock_cache.return_value = _make_sample_df2()
-        reader = MagicMock()
-
-        result = load_and_filter_data_2(
-            reader, "apac-dot-ddd-change-issue-sql",
-            selected_months=None,
-            prc_filter_value="all",
-            area_values=["APAC"],
-            category_values=None,
-            vendor_values=None,
-            order_type_values=None,
-        )
-        assert len(result) == 2
-        assert all(result["business area"] == "APAC")
-
-    @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
-    def test_category_filter(self, mock_cache):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
-
-        mock_cache.return_value = _make_sample_df2()
-        reader = MagicMock()
-
-        result = load_and_filter_data_2(
-            reader, "apac-dot-ddd-change-issue-sql",
-            selected_months=None,
-            prc_filter_value="all",
-            area_values=None,
-            category_values=["WS-X"],
-            vendor_values=None,
-            order_type_values=None,
-        )
-        assert len(result) == 2
-        assert all(result["metric workstream"] == "WS-X")
-
-    @patch("src.pages.apac_dot_due_date._data_loader.get_cached_dataset")
-    def test_vendor_filter(self, mock_cache):
-        from src.pages.apac_dot_due_date._data_loader import load_and_filter_data_2
-
-        mock_cache.return_value = _make_sample_df2()
-        reader = MagicMock()
-
-        result = load_and_filter_data_2(
-            reader, "apac-dot-ddd-change-issue-sql",
-            selected_months=None,
-            prc_filter_value="all",
-            area_values=None,
-            category_values=None,
-            vendor_values=["VendorA"],
-            order_type_values=None,
-        )
-        assert len(result) == 2
-        assert all(result["vendor: account name"] == "VendorA")
 
 
 # ===========================================================================

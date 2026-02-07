@@ -11,10 +11,7 @@ from src.data.data_source_registry import resolve_dataset_id
 from ._constants import (
     DASHBOARD_ID,
     KPI_ID_TOTAL_WORK_ORDERS,
-    CHART_ID_REFERENCE_TABLE,
-    CHART_ID_REFERENCE_TABLE_TITLE,
-    CHART_ID_CHANGE_ISSUE_TABLE,
-    CHART_ID_CHANGE_ISSUE_TABLE_TITLE,
+    DATASETS,
     CTRL_ID_NUM_PERCENT,
     CTRL_ID_BREAKDOWN,
     FILTER_ID_MONTH,
@@ -25,17 +22,18 @@ from ._constants import (
     FILTER_ID_AMP_AV,
     FILTER_ID_ORDER_TYPE,
 )
-from ._data_loader import load_and_filter_data, load_and_filter_data_2
-from .charts import _ch00_reference_table, _ch01_change_issue_table
+from ._data_loader import load_and_filter_data
+from .charts._pivot_table_builder import build_pivot_table
+from .charts._table_specs import TABLE_SPECS
 
 
 @callback(
     [
         Output(KPI_ID_TOTAL_WORK_ORDERS, "children"),
-        Output(CHART_ID_REFERENCE_TABLE_TITLE, "children"),
-        Output(CHART_ID_REFERENCE_TABLE, "children"),
-        Output(CHART_ID_CHANGE_ISSUE_TABLE_TITLE, "children"),
-        Output(CHART_ID_CHANGE_ISSUE_TABLE, "children"),
+        Output(DATASETS["reference"].chart_title_id, "children"),
+        Output(DATASETS["reference"].chart_id, "children"),
+        Output(DATASETS["change_issue"].chart_title_id, "children"),
+        Output(DATASETS["change_issue"].chart_id, "children"),
     ],
     [
         Input(CTRL_ID_NUM_PERCENT, "value"),
@@ -62,60 +60,71 @@ def update_all_charts(
 ):
     """Update all charts based on filter inputs.
 
-    Creates a ParquetReader, calls load_and_filter_data for dataset 1
-    and load_and_filter_data_2 for dataset 2, and passes each result
-    to the corresponding chart builder.
+    Loops through DATASETS configuration to load and filter each dataset,
+    then builds pivot tables using the shared build_pivot_table function.
     """
     reader = ParquetReader()
 
     try:
-        # Dataset 1: order_type NOT applied
-        dataset_id_1 = resolve_dataset_id(DASHBOARD_ID, CHART_ID_REFERENCE_TABLE)
-        filtered_df_1 = load_and_filter_data(
-            reader,
-            dataset_id_1,
-            selected_months=selected_months,
-            prc_filter_value=prc_filter_value,
-            area_values=area_values,
-            category_values=category_values,
-            vendor_values=vendor_values,
-            amp_av_values=amp_av_values,
-            order_type_values=None,           # dataset 1 does not use order_type
-        )
+        chart_results = []
+        ref_config = DATASETS["reference"]
+        filtered_df_for_kpi = None
 
-        # Dataset 2: amp_av NOT applicable
-        dataset_id_2 = resolve_dataset_id(DASHBOARD_ID, CHART_ID_CHANGE_ISSUE_TABLE)
-        filtered_df_2 = load_and_filter_data_2(
-            reader,
-            dataset_id_2,
-            selected_months=selected_months,
-            prc_filter_value=prc_filter_value,
-            area_values=area_values,
-            category_values=category_values,
-            vendor_values=vendor_values,
-            order_type_values=order_type_values,  # dataset 2 uses order_type
-        )
+        # Process each dataset configuration
+        for ds_key, ds_cfg in DATASETS.items():
+            dataset_id = resolve_dataset_id(DASHBOARD_ID, ds_cfg.chart_id)
 
-        # Calculate total work orders (using work_order_id column from dataset 1)
-        from ._constants import COLUMN_MAP
-        work_order_col = COLUMN_MAP.get("work_order_id")
-        if work_order_col and work_order_col in filtered_df_1.columns:
-            total_work_orders = filtered_df_1[work_order_col].nunique()
+            # Apply filters, skipping those in skip_filters
+            filtered_df = load_and_filter_data(
+                reader,
+                dataset_id,
+                ds_cfg.column_map,
+                selected_months=selected_months,
+                prc_filter_value=prc_filter_value,
+                area_values=area_values,
+                category_values=category_values,
+                vendor_values=vendor_values,
+                amp_av_values=None if "amp_av" in ds_cfg.skip_filters else amp_av_values,
+                order_type_values=None if "order_type" in ds_cfg.skip_filters else order_type_values,
+            )
+
+            # Save reference dataset for KPI calculation
+            if ds_key == "reference":
+                filtered_df_for_kpi = filtered_df
+
+            # Build pivot table directly (no wrapper needed)
+            title, comp = build_pivot_table(
+                filtered_df=filtered_df,
+                breakdown_tab=breakdown_tab,
+                num_percent_mode=num_percent_mode,
+                column_map=ds_cfg.column_map,
+                breakdown_map=ds_cfg.breakdown_map,
+                table_spec=TABLE_SPECS[ds_cfg.table_spec_key],
+            )
+            chart_results.append((title, comp))
+
+        # Calculate total work orders (using work_order_id column from reference dataset)
+        work_order_col = ref_config.column_map.get("work_order_id")
+        if work_order_col and work_order_col in filtered_df_for_kpi.columns:
+            total_work_orders = filtered_df_for_kpi[work_order_col].nunique()
         else:
-            total_work_orders = len(filtered_df_1)
+            total_work_orders = len(filtered_df_for_kpi)
 
-        title_0, comp_0 = _ch00_reference_table.build(filtered_df_1, breakdown_tab, num_percent_mode)
-        title_1, comp_1 = _ch01_change_issue_table.build(filtered_df_2, breakdown_tab, num_percent_mode)
-
-        return (f"{total_work_orders:,}", title_0, comp_0, title_1, comp_1)
+        return (
+            f"{total_work_orders:,}",
+            *chart_results[0],  # reference table (title, component)
+            *chart_results[1],  # change_issue table (title, component)
+        )
 
     except Exception as e:
         msg = f"Error loading data: {str(e)}"
+        ref_config = DATASETS["reference"]
+        change_config = DATASETS["change_issue"]
 
         return (
             "0",
-            "0) Reference : Number of Work Order",
+            TABLE_SPECS[ref_config.table_spec_key].title,
             html.Div([html.P(msg, className="text-danger")]),
-            "1) DDD Change + Issue : Number of Work Order",
+            TABLE_SPECS[change_config.table_spec_key].title,
             html.Div([html.P(msg, className="text-danger")]),
         )

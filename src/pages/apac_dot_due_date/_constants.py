@@ -3,6 +3,7 @@
 Centralizes dataset identifiers, column name mappings, and ID prefixes
 to avoid hardcoded strings scattered across layout and callback code.
 """
+from dataclasses import dataclass
 
 # Dashboard identifier (used for config lookup)
 DASHBOARD_ID: str = "apac_dot_due_date"
@@ -38,45 +39,68 @@ CHART_ID_REFERENCE_TABLE_TITLE: str = f"{CHART_ID_REFERENCE_TABLE}-title"
 CHART_ID_CHANGE_ISSUE_TABLE: str = f"{ID_PREFIX}chart-01"
 CHART_ID_CHANGE_ISSUE_TABLE_TITLE: str = f"{CHART_ID_CHANGE_ISSUE_TABLE}-title"
 
-# Mapping from logical filter ID to the actual DataFrame column name.
-# Keys are short identifiers used in code; values are the raw column names
-# as they appear in the Parquet/DataFrame.
-COLUMN_MAP: dict[str, str] = {
-    "month": "Delivery Completed Month",
-    "area": "business area",
-    "category": "Metric Workstream",
-    "vendor": "Vendor: Account Name",
-    "amp_av": "AMP VS AV Scope",
-    "order_type": "order tags",
-    "job_name": "job name",
-    "work_order_id": "work order id",
-}
 
-# Mapping from logical filter ID to the DataFrame column name for change-issue data.
-COLUMN_MAP_2: dict[str, str] = {
-    "month": "edit month",
-    "area": "business area",
-    "category": "metric workstream",
-    "vendor": "vendor: account name",
-    "order_type": "order types",
-    "job_name": "job name",
-    "work_order_id": "work order: work order id",
-}
+@dataclass(frozen=True)
+class DatasetConfig:
+    """Configuration for a dataset used in this dashboard.
 
-# Mapping from breakdown tab ID to the DataFrame column used for pivot grouping.
-# This is a subset of COLUMN_MAP -- only the columns that make sense as
-# breakdown dimensions in the pivot table.
-BREAKDOWN_MAP: dict[str, str] = {
-    "area": "business area",
-    "category": "Metric Workstream",
-    "vendor": "Vendor: Account Name",
-}
+    Groups all dataset-specific settings: column mappings, chart IDs,
+    table specs, and which filters should be skipped.
+    """
 
-# Mapping from breakdown tab ID to the DataFrame column for change-issue pivot grouping.
-# This is a subset of COLUMN_MAP_2 -- only the columns that make sense as
-# breakdown dimensions in the pivot table.
-BREAKDOWN_MAP_2: dict[str, str] = {
-    "area": "business area",
-    "category": "metric workstream",
-    "vendor": "vendor: account name",
+    dataset_id: str
+    chart_id: str
+    chart_title_id: str
+    column_map: dict[str, str]
+    breakdown_map: dict[str, str]
+    table_spec_key: str
+    skip_filters: frozenset[str] = frozenset()
+
+
+# Dataset configurations grouped by logical name.
+# Each entry defines column mappings, chart IDs, and filter exclusions.
+DATASETS: dict[str, DatasetConfig] = {
+    "reference": DatasetConfig(
+        dataset_id="apac-dot-due-date",
+        chart_id=CHART_ID_REFERENCE_TABLE,
+        chart_title_id=CHART_ID_REFERENCE_TABLE_TITLE,
+        column_map={
+            "month": "Delivery Completed Month",
+            "area": "business area",
+            "category": "Metric Workstream",
+            "vendor": "Vendor: Account Name",
+            "amp_av": "AMP VS AV Scope",
+            "order_type": "order tags",
+            "job_name": "job name",
+            "work_order_id": "work order id",
+        },
+        breakdown_map={
+            "area": "business area",
+            "category": "Metric Workstream",
+            "vendor": "Vendor: Account Name",
+        },
+        table_spec_key="ch00_reference_table",
+        skip_filters=frozenset(["order_type"]),
+    ),
+    "change_issue": DatasetConfig(
+        dataset_id="apac-dot-ddd-change-issue-sql",
+        chart_id=CHART_ID_CHANGE_ISSUE_TABLE,
+        chart_title_id=CHART_ID_CHANGE_ISSUE_TABLE_TITLE,
+        column_map={
+            "month": "edit month",
+            "area": "business area",
+            "category": "metric workstream",
+            "vendor": "vendor: account name",
+            "order_type": "order types",
+            "job_name": "job name",
+            "work_order_id": "work order: work order id",
+        },
+        breakdown_map={
+            "area": "business area",
+            "category": "metric workstream",
+            "vendor": "vendor: account name",
+        },
+        table_spec_key="ch01_change_issue_table",
+        skip_filters=frozenset(["amp_av"]),
+    ),
 }
