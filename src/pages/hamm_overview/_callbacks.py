@@ -69,7 +69,6 @@ def _build_volume_table(df: pd.DataFrame) -> html.Div:
         data=df[display_columns].to_dict("records"),
         columns=[{"name": c, "id": c} for c in display_columns],
         sort_action="native",
-        sort_by=[{"column_id": "Start Date", "direction": "desc"}],
         page_size=20,
         style_table={"overflowX": "auto"},
         style_cell={"textAlign": "left", "padding": "8px"},
@@ -167,9 +166,16 @@ def _build_task_table(df: pd.DataFrame) -> html.Div:
     output_df["Completed / Err"] = display_df["Completed / Err"]
     output_df["Total Duration"] = display_df["Total Duration"]
 
+    # Sort by Task ID (as numeric)
+    output_df = output_df.sort_values(
+        by="Task ID",
+        key=lambda x: pd.to_numeric(x, errors="coerce").fillna(0),
+    )
+
     table_component = dash_table.DataTable(
         data=output_df[ordered_columns].to_dict("records"),
         columns=[{"name": c, "id": c} for c in ordered_columns],
+        sort_action="native",
         page_size=20,
         style_table={"overflowX": "auto"},
         style_cell={"textAlign": "left", "padding": "8px"},
@@ -191,6 +197,11 @@ def _strip_sort_column(df: pd.DataFrame) -> pd.DataFrame:
 
 def _build_volume_summary(df: pd.DataFrame, cadence: str) -> pd.DataFrame:
     df = add_cadence_columns(df, cadence)
+
+    # Exclude Cancelled and Invalid status for volume summary
+    status_col = COLUMN_MAP["status"]
+    excluded_statuses = ["Cancelled", "Invalid"]
+    df = df[~df[status_col].isin(excluded_statuses)]
 
     group_cols = [
         DERIVED_FISCAL_YEAR,

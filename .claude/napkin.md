@@ -11,8 +11,11 @@
 - Wants human-editable settings separated clearly from non-editable logic.
 
 ## Patterns That Don't Work
-- 2026-02-07: `python3 backend/scripts/load_domo.py --dataset ...` failed due to DNS resolution for `api.domo.com` in this environment. If ETL is required, run in an environment with outbound DNS/network access.
 - 2026-02-07: MinIO access from this environment failed (`http://localhost:9000` PermissionError). Run ParquetReader validation in the user environment where MinIO is reachable.
+
+## Patterns That Work
+- 2026-02-08: DOMO ETL (`python3 backend/scripts/load_domo.py --dataset ...`) works when network is available. Previous DNS failure was transient.
+- 2026-02-08: ISO week calculation fix in `_add_cadence_columns` - use Monday start (weekday 0 → offset 0) not Tuesday start.
 
 ## Domain Notes
 - (project/domain context that matters)

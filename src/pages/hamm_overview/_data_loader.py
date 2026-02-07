@@ -124,9 +124,10 @@ def _add_cadence_columns(df: pd.DataFrame, cadence: str) -> pd.DataFrame:
     if cadence == CADENCE_WEEKLY:
         df[DERIVED_ISO_WEEK] = df[created_col].dt.strftime("%V").fillna("Null")
 
+        # ISO week: Monday(0) to Sunday(6)
         weekday = df[created_col].dt.weekday
-        start_offsets = weekday.map({0: -6, 1: 0, 2: -1, 3: -2, 4: -3, 5: -4, 6: -5})
-        end_offsets = weekday.map({0: 0, 1: 6, 2: 5, 3: 4, 4: 3, 5: 2, 6: 1})
+        start_offsets = weekday.map({0: 0, 1: -1, 2: -2, 3: -3, 4: -4, 5: -5, 6: -6})
+        end_offsets = weekday.map({0: 6, 1: 5, 2: 4, 3: 3, 4: 2, 5: 1, 6: 0})
 
         start_dates = df[created_col] + pd.to_timedelta(start_offsets, unit="D")
         end_dates = df[created_col] + pd.to_timedelta(end_offsets, unit="D")

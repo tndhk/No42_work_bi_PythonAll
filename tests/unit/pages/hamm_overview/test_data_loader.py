@@ -84,6 +84,101 @@ def test_add_cadence_columns_weekly_has_start_end(mock_cache):
     assert "_end_date" in result.columns
 
 
+def test_add_cadence_columns_weekly_monday_start():
+    """TC-W-01: Monday (weekday=0) should be week start."""
+    from src.pages.hamm_overview._data_loader import add_cadence_columns
+
+    # Given: 2026-01-26 is Monday (weekday=0)
+    df = pd.DataFrame({
+        "created_at": pd.to_datetime(["2026-01-26 10:00:00"], utc=True),
+    })
+
+    # When: add weekly cadence columns
+    result = add_cadence_columns(df, "weekly")
+
+    # Then: Start Date = 26-Jan-26 (Monday), End Date = 01-Feb-26 (Sunday)
+    assert result["_start_date"].iloc[0] == "26-Jan-26"
+    assert result["_end_date"].iloc[0] == "01-Feb-26"
+    assert result["_iso_week"].iloc[0] == "05"
+
+
+def test_add_cadence_columns_weekly_sunday_end():
+    """TC-W-02: Sunday (weekday=6) should be week end."""
+    from src.pages.hamm_overview._data_loader import add_cadence_columns
+
+    # Given: 2026-02-01 is Sunday (weekday=6)
+    df = pd.DataFrame({
+        "created_at": pd.to_datetime(["2026-02-01 10:00:00"], utc=True),
+    })
+
+    # When: add weekly cadence columns
+    result = add_cadence_columns(df, "weekly")
+
+    # Then: Start Date = 26-Jan-26 (Monday), End Date = 01-Feb-26 (Sunday)
+    assert result["_start_date"].iloc[0] == "26-Jan-26"
+    assert result["_end_date"].iloc[0] == "01-Feb-26"
+    assert result["_iso_week"].iloc[0] == "05"
+
+
+def test_add_cadence_columns_weekly_wednesday_midweek():
+    """TC-W-03: Wednesday (weekday=2) should have correct week range."""
+    from src.pages.hamm_overview._data_loader import add_cadence_columns
+
+    # Given: 2026-02-04 is Wednesday (weekday=2)
+    df = pd.DataFrame({
+        "created_at": pd.to_datetime(["2026-02-04 10:00:00"], utc=True),
+    })
+
+    # When: add weekly cadence columns
+    result = add_cadence_columns(df, "weekly")
+
+    # Then: Start Date = 02-Feb-26 (Monday), End Date = 08-Feb-26 (Sunday)
+    assert result["_start_date"].iloc[0] == "02-Feb-26"
+    assert result["_end_date"].iloc[0] == "08-Feb-26"
+    assert result["_iso_week"].iloc[0] == "06"
+
+
+def test_add_cadence_columns_weekly_saturday():
+    """TC-W-04: Saturday (weekday=5) should have correct week range."""
+    from src.pages.hamm_overview._data_loader import add_cadence_columns
+
+    # Given: 2026-01-25 is Saturday (weekday=5), ISO Week 04
+    df = pd.DataFrame({
+        "created_at": pd.to_datetime(["2026-01-25 10:00:00"], utc=True),
+    })
+
+    # When: add weekly cadence columns
+    result = add_cadence_columns(df, "weekly")
+
+    # Then: Start Date = 19-Jan-26 (Monday), End Date = 25-Jan-26 (Sunday)
+    assert result["_start_date"].iloc[0] == "19-Jan-26"
+    assert result["_end_date"].iloc[0] == "25-Jan-26"
+    assert result["_iso_week"].iloc[0] == "04"
+
+
+def test_add_cadence_columns_weekly_same_iso_week_same_dates():
+    """Same ISO week should have identical Start/End Dates regardless of weekday."""
+    from src.pages.hamm_overview._data_loader import add_cadence_columns
+
+    # Given: Multiple dates in ISO Week 05 (2026-01-26 Mon to 2026-02-01 Sun)
+    df = pd.DataFrame({
+        "created_at": pd.to_datetime([
+            "2026-01-26 10:00:00",  # Monday
+            "2026-01-28 10:00:00",  # Wednesday
+            "2026-02-01 10:00:00",  # Sunday
+        ], utc=True),
+    })
+
+    # When: add weekly cadence columns
+    result = add_cadence_columns(df, "weekly")
+
+    # Then: All rows should have same Start/End dates
+    assert result["_start_date"].nunique() == 1
+    assert result["_end_date"].nunique() == 1
+    assert result["_start_date"].iloc[0] == "26-Jan-26"
+    assert result["_end_date"].iloc[0] == "01-Feb-26"
+
+
 def test_prepare_base_df_converts_video_duration_to_seconds():
     from src.pages.hamm_overview._data_loader import _prepare_base_df
 
