@@ -17,7 +17,7 @@ def _config_path(dashboard_id: str) -> Path:
 
 
 @lru_cache(maxsize=128)
-def load_dashboard_config(dashboard_id: str) -> dict[str, Any]:
+def load_dashboard_config(dashboard_id: str) -> dict:
     """Load YAML config for a dashboard.
 
     Raises:
@@ -39,7 +39,7 @@ def load_dashboard_config(dashboard_id: str) -> dict[str, Any]:
     return {"charts": charts}
 
 
-def get_dataset_id(dashboard_id: str, chart_id: str) -> str | None:
+def get_dataset_id(dashboard_id: str, chart_id: str) -> Optional[str]:
     """Resolve dataset_id for a chart in a dashboard config.
 
     Returns:
