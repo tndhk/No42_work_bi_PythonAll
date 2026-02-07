@@ -1,7 +1,8 @@
 """Filter UI components."""
 from typing import Optional
-from dash import dcc
+from dash import dcc, html
 import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 
 
 def create_category_filter(
@@ -66,3 +67,41 @@ def create_date_range_filter(
             ),
         ]),
     ], className="filter-card mb-3")
+
+
+def create_slicer_filter(
+    filter_id: str,
+    column_name: str,
+    options: list[str],
+    multi: bool = True,
+    default_value: Optional[list[str]] = None,
+) -> dbc.Card:
+    """
+    Create a slicer-style filter using Mantine ChipGroup.
+
+    Args:
+        filter_id: Component ID (for callbacks)
+        column_name: Target column name (for label display)
+        options: List of options
+        multi: Allow multiple selection (default True)
+        default_value: Default selected values
+
+    Returns:
+        Card-wrapped slicer filter component
+    """
+    chips = [
+        dmc.Chip(opt, value=opt, size="sm", variant="outline")
+        for opt in options
+    ]
+
+    return dbc.Card([
+        dbc.CardHeader(column_name, className="filter-header"),
+        dbc.CardBody([
+            dmc.ChipGroup(
+                id=filter_id,
+                children=chips,
+                value=default_value or [],
+                multiple=multi,
+            ),
+        ]),
+    ], className="filter-card slicer-filter mb-3")
